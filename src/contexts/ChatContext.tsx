@@ -662,7 +662,6 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           setPendingTickets([]); // Clear any pending tickets
         } else if (response.status === 404 || response.status === 401) {
           // Conversation not found or unauthorized - don't show error message
-          console.log('Conversation not found or unauthorized:', conversationId, response.status);
           // Clear current state silently
           setMessages([]);
           setCurrentConversationId(null);
@@ -670,12 +669,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           // Throw a special error that the component can handle
           throw new Error('CONVERSATION_NOT_FOUND');
         } else {
-          // For other errors (500, etc.), also treat as not found
-          console.log(
-            'Error loading conversation (treating as not found):',
-            response.status,
-            conversationId
-          );
+          // // For other errors (500, etc.), also treat as not found
+          // console.log(
+          //   'Error loading conversation (treating as not found):',
+          //   response.status,
+          //   conversationId
+          // );
           setMessages([]);
           setCurrentConversationId(null);
           setPendingTickets([]);
@@ -690,10 +689,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         }
 
         // For network errors or other issues, also treat as not found
-        console.log(
-          'Network or other error loading conversation (treating as not found):',
-          conversationId
-        );
+        // console.log(
+        //   'Network or other error loading conversation (treating as not found):',
+        //   conversationId
+        // );
         setMessages([]);
         setCurrentConversationId(null);
         setPendingTickets([]);

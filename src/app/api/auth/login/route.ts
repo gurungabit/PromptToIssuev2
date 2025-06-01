@@ -7,8 +7,6 @@ export async function POST(request: NextRequest) {
   try {
     const { email, username } = await request.json();
 
-    console.log('Login request received:', { email, username });
-
     if (!email && !username) {
       return NextResponse.json({ message: 'Email and username are required' }, { status: 400 });
     }

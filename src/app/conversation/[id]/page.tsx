@@ -23,7 +23,6 @@ const ConversationPage = () => {
       loadConversation(conversationId).catch((error: Error) => {
         // If conversation not found (deleted), redirect to home
         if (error.message === 'CONVERSATION_NOT_FOUND') {
-          console.log('Conversation was deleted, redirecting to home');
           router.push('/');
         }
       });

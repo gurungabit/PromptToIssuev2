@@ -66,8 +66,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('conversationHistory', conversationHistory);
-
     // Convert conversation history to LLM format
     const llmMessages: LLMMessage[] = [
       ...conversationHistory.map((msg: Message) => ({
