@@ -61,6 +61,10 @@ interface ChatContextType {
   updateConversationTitle: (conversationId: string, title: string) => void;
   loadConversationsForUser: (userId: string) => void;
   
+  // Share Actions
+  createShareLink: (conversationId: string) => Promise<{ shareId: string; shareUrl: string }>;
+  removeShareLink: (conversationId: string) => Promise<void>;
+  
   // GitLab Actions
   setGitLabConfig: (config: GitLabConfig) => void;
   createGitLabIssues: (tickets: Ticket[], projectSelection: ProjectSelection) => Promise<void>;
@@ -703,6 +707,46 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, [getAuthHeaders]);
 
+  const createShareLink = useCallback(async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}/share`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return {
+          shareId: data.shareId,
+          shareUrl: data.shareUrl,
+        };
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create share link');
+      }
+    } catch (error) {
+      console.error('Failed to create share link:', error);
+      throw error;
+    }
+  }, [getAuthHeaders]);
+
+  const removeShareLink = useCallback(async (conversationId: string) => {
+    try {
+      const response = await fetch(`/api/conversations/${conversationId}/share`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove share link');
+      }
+    } catch (error) {
+      console.error('Failed to remove share link:', error);
+      throw error;
+    }
+  }, [getAuthHeaders]);
+
   const contextValue: ChatContextType = {
     // State
     messages,
@@ -736,6 +780,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     deleteConversation,
     updateConversationTitle,
     loadConversationsForUser,
+    
+    // Share Actions
+    createShareLink,
+    removeShareLink,
     
     // GitLab Actions
     setGitLabConfig: setGitlabConfig,

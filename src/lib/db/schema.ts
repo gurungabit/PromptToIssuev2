@@ -47,6 +47,7 @@ export const conversations = pgTable('conversations', {
   title: varchar('title', { length: 255 }).notNull(),
   mode: varchar('mode', { length: 20 }).notNull(),
   provider: varchar('provider', { length: 50 }).notNull(),
+  shareId: varchar('share_id', { length: 32 }).unique(),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
@@ -54,6 +55,7 @@ export const conversations = pgTable('conversations', {
 }, (table) => ({
   userIdIdx: index('idx_conversations_user_id').on(table.userId),
   updatedAtIdx: index('idx_conversations_updated_at').on(table.updatedAt),
+  shareIdIdx: index('idx_conversations_share_id').on(table.shareId),
 }));
 
 // Messages table

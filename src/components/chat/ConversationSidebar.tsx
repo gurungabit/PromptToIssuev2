@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
+import { ShareButton } from '@/components/chat/ShareButton';
 import { 
   Plus, 
   Search, 
@@ -292,6 +293,12 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                       /* Hover actions */
                       hoveredId === conversation.id && (
                         <div className="absolute right-2 top-2 flex gap-1 opacity-100 transition-opacity">
+                          <ShareButton
+                            conversationId={conversation.id}
+                            size="icon"
+                            variant="ghost"
+                            className="w-6 h-6 text-chat-sidebar-foreground/60 hover:text-chat-sidebar-foreground hover:bg-muted rounded-lg cursor-pointer hover:scale-110 hover:shadow-md"
+                          />
                           <Button
                             variant="ghost"
                             size="icon"
