@@ -1,36 +1,220 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎯 AI Ticket Automation
 
-## Getting Started
+An intelligent chatbot application that generates structured tickets from natural language descriptions using AI. Built with Next.js 14, TypeScript, Tailwind CSS, and Drizzle ORM.
 
-First, run the development server:
+## ✨ Features
+
+- **Dual Modes**: Assistant for general help, Ticket mode for structured ticket generation
+- **Multi-Provider AI**: Support for OpenAI, Anthropic, Google AI, and Ollama
+- **Professional UI**: ChatGPT-like interface with dark/light themes
+- **Persistent Storage**: PostgreSQL database with Drizzle ORM
+- **Real-time Chat**: Smooth conversations with copy functionality
+- **Ticket Management**: Generate, preview, and manage structured tickets
+- **User Management**: User accounts, settings, and conversation history
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ 
+- Docker (for PostgreSQL)
+- Git
+
+### 1. Clone and Install
+
+```bash
+git clone <repository-url>
+cd prompt-to-issue
+npm install
+```
+
+### 2. Environment Setup
+
+Copy the environment file and configure your settings:
+
+```bash
+cp .env.local.example .env.local
+```
+
+Update `.env.local` with your API keys:
+
+```env
+# Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/prompt_to_issue
+
+# AI Provider Keys
+OPENAI_API_KEY=your_openai_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+GOOGLE_API_KEY=your_google_api_key_here
+```
+
+### 3. Database Setup
+
+Start PostgreSQL with Docker:
+
+```bash
+npm run docker:up
+```
+
+Push schema and seed data:
+
+```bash
+npm run db:setup
+```
+
+### 4. Start Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🗄️ Database Management
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Available Commands
 
-## Learn More
+```bash
+# Docker Management
+npm run docker:up      # Start PostgreSQL container
+npm run docker:down    # Stop PostgreSQL container
+npm run docker:logs    # View PostgreSQL logs
 
-To learn more about Next.js, take a look at the following resources:
+# Database Operations
+npm run db:generate    # Generate migrations from schema
+npm run db:push        # Push schema to database
+npm run db:migrate     # Run migrations
+npm run db:seed        # Seed database with demo data
+npm run db:setup       # Full setup (push + seed)
+npm run db:studio      # Open Drizzle Studio
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Database Schema
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The application uses the following main tables:
 
-## Deploy on Vercel
+- **users**: User accounts and profiles
+- **user_settings**: User preferences and configurations
+- **conversations**: Chat conversations
+- **messages**: Individual chat messages
+- **tickets**: Generated tickets with metadata
+- **provider_configs**: AI provider configurations
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Drizzle Studio
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Explore your database with Drizzle Studio:
+
+```bash
+npm run db:studio
+```
+
+Visit [https://local.drizzle.studio](https://local.drizzle.studio)
+
+## 🔧 Configuration
+
+### AI Providers
+
+Configure AI providers in your `.env.local`:
+
+```env
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=...
+```
+
+### Database Connection
+
+For external PostgreSQL:
+
+```env
+DATABASE_URL=postgresql://username:password@host:port/database
+```
+
+## 🏗️ Project Structure
+
+```
+src/
+├── app/                  # Next.js 14 app directory
+│   ├── api/             # API routes
+│   └── page.tsx         # Main page
+├── components/          # React components
+│   ├── chat/           # Chat interface components
+│   ├── tickets/        # Ticket management components
+│   └── ui/             # Reusable UI components
+├── contexts/           # React contexts
+├── lib/               # Utilities and core logic
+│   ├── db/           # Database schema and operations
+│   ├── llm/          # LLM provider system
+│   └── utils.ts      # Utility functions
+└── styles/           # Global styles
+```
+
+## 🛠️ Development
+
+### Adding New AI Providers
+
+1. Create provider class in `src/lib/llm/providers/`
+2. Register in `src/lib/llm/index.ts`
+3. Update schemas in `src/lib/schemas.ts`
+
+### Database Migrations
+
+When you modify the schema:
+
+```bash
+npm run db:generate  # Generate migration files
+npm run db:migrate   # Apply migrations
+```
+
+### Code Quality
+
+```bash
+npm run lint         # ESLint
+npm run build        # Test production build
+```
+
+## 🐳 Docker Services
+
+The `docker-compose.yml` includes:
+
+- **PostgreSQL 15**: Main database
+- **pgAdmin**: Database management UI (optional)
+  - URL: [http://localhost:5050](http://localhost:5050)
+  - Email: admin@example.com
+  - Password: admin
+
+## 📝 API Documentation
+
+### Chat API
+
+```typescript
+POST /api/chat
+{
+  "message": "Create user authentication system",
+  "mode": "ticket",
+  "provider": "openai",
+  "config": { ... },
+  "conversationHistory": [ ... ]
+}
+```
+
+### Tickets API
+
+```typescript
+POST /api/tickets/create
+{
+  "tickets": [ ... ]
+}
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - see LICENSE file for details
