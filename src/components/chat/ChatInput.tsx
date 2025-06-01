@@ -3,10 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { Button } from '@/components/ui/Button';
-import { Send, Square, Paperclip, Mic } from 'lucide-react';
+import { Send, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const ChatInput: React.FC = () => {
+interface ChatInputProps {
+  onSendMessage?: (message: string) => Promise<string | null>;
+}
+
+const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
   const { sendMessage, isLoading, currentMode } = useChat();
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -17,7 +21,13 @@ const ChatInput: React.FC = () => {
     
     const message = input.trim();
     setInput('');
-    await sendMessage(message);
+    
+    // Use custom send function if provided, otherwise use context
+    if (onSendMessage) {
+      await onSendMessage(message);
+    } else {
+      await sendMessage(message);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -91,7 +101,7 @@ const ChatInput: React.FC = () => {
           disabled={!canSend && !isLoading}
           size="icon"
           className={cn(
-            "flex-shrink-0 w-10 h-10 rounded-xl transition-all duration-200",
+            "flex-shrink-0 w-10 h-10 rounded-xl transition-all duration-200 cursor-pointer",
             canSend || isLoading
               ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl hover:scale-105"
               : "bg-muted text-muted-foreground cursor-not-allowed"

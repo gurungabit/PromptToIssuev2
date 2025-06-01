@@ -2,7 +2,7 @@
 
 /* Custom CSS variables for our app */
 @layer base {
-  :root {
+:root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
@@ -114,8 +114,8 @@
   
   .chat-main {
     background: hsl(var(--chat-main));
-  }
-  
+}
+
   .chat-message-user {
     background: hsl(var(--chat-message-user));
     border-radius: 24px 24px 8px 24px;

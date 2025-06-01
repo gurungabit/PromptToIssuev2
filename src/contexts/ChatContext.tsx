@@ -43,11 +43,11 @@ interface ChatContextType {
   showProjectSelection: boolean;
   
   // Actions
-  sendMessage: (content: string) => Promise<void>;
+  sendMessage: (content: string) => Promise<string | null>;
   setMode: (mode: ChatMode) => void;
   setProvider: (provider: LLMProvider) => void;
   clearMessages: () => void;
-  addMessage: (content: string, role: 'user' | 'assistant') => void;
+  addMessage: (content: string, role: 'user' | 'assistant', conversationId?: string) => void;
   approveTickets: () => void;
   rejectTickets: () => void;
   editTicket: (ticketId: string, updates: Partial<Ticket>) => void;
@@ -55,7 +55,7 @@ interface ChatContextType {
   
   // Conversation Actions
   createNewConversation: (title?: string, clearUI?: boolean) => void;
-  loadConversation: (conversationId: string) => void;
+  loadConversation: (conversationId: string) => Promise<void>;
   deleteConversation: (conversationId: string) => void;
   updateConversationTitle: (conversationId: string, title: string) => void;
   loadConversationsForUser: (userId: string) => void;
@@ -204,7 +204,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, [currentMode]);
 
-  const addMessage = useCallback((content: string, role: 'user' | 'assistant') => {
+  const addMessage = useCallback((content: string, role: 'user' | 'assistant', conversationId?: string) => {
     const newMessage: Message = {
       id: generateId(),
       role,
@@ -215,11 +215,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     
     setMessages(prev => [...prev, newMessage]);
     
+    // Use the provided conversationId or fall back to currentConversationId
+    const targetConversationId = conversationId || currentConversationId;
+    
     // Update message count for current conversation
-    if (currentConversationId) {
+    if (targetConversationId) {
       setConversations(prev => 
         prev.map(conv => 
-          conv.id === currentConversationId 
+          conv.id === targetConversationId 
             ? { 
                 ...conv, 
                 messageCount: conv.messageCount + 1,
@@ -230,9 +233,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         )
       );
       
-      // Save message to database if we have a conversation ID
-      if (currentConversationId) {
-        saveMessageToDatabase(currentConversationId, role, content).catch(error => {
+      // Only save message to database if conversationId is not provided (no active conversation)
+      // When conversationId is provided, the API already handles saving to avoid duplicates
+      if (!conversationId && targetConversationId) {
+        saveMessageToDatabase(targetConversationId, role, content).catch(error => {
           console.error('Failed to save message to database:', error);
         });
       }
@@ -240,6 +244,40 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     
     return newMessage;
   }, [currentConversationId, currentMode, saveMessageToDatabase]);
+
+  // Add message to UI only (don't save to database)
+  const addMessageToUIOnly = useCallback((content: string, role: 'user' | 'assistant', conversationId?: string) => {
+    const newMessage: Message = {
+      id: generateId(),
+      role,
+      content,
+      timestamp: new Date(),
+      mode: currentMode,
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+    
+    // Use the provided conversationId or fall back to currentConversationId
+    const targetConversationId = conversationId || currentConversationId;
+    
+    // Update message count for current conversation but don't save to database
+    if (targetConversationId) {
+      setConversations(prev => 
+        prev.map(conv => 
+          conv.id === targetConversationId 
+            ? { 
+                ...conv, 
+                messageCount: conv.messageCount + 1,
+                lastMessage: content.length > 50 ? content.substring(0, 50) + '...' : content,
+                timestamp: new Date()
+              }
+            : conv
+        )
+      );
+    }
+    
+    return newMessage;
+  }, [currentConversationId, currentMode]);
 
   const generateConversationTitle = (content: string): string => {
     // Extract first meaningful part of the message for title
@@ -331,28 +369,33 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   }, [currentMode, currentProvider]);
 
-  const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isLoading) return;
+  const sendMessage = useCallback(async (content: string): Promise<string | null> => {
+    if (!content.trim() || isLoading) return null;
 
     setIsLoading(true);
     setPendingTickets([]);
 
-    // Add user message immediately to show chat interface
-    addMessage(content, 'user');
+    // Declare conversationId outside try block so it's accessible in catch
+    let conversationId = currentConversationId;
 
     try {
-      // If no current conversation, create one but don't clear the UI since we already added the message
-      let conversationId = currentConversationId;
+      // If no current conversation, create one first
       if (!conversationId) {
         const title = generateConversationTitle(content);
         const newConv = await createNewConversation(title, false); // Don't clear UI
         conversationId = newConv?.id;
+        
+        // Set the conversation ID immediately so the message count updates work
+        setCurrentConversationId(conversationId);
       }
 
       // Only proceed if we have a valid conversation ID
       if (!conversationId) {
         throw new Error('Failed to create or get conversation ID');
       }
+
+      // Add user message after conversation is created
+      addMessage(content, 'user', conversationId);
 
       // Add minimum delay to ensure loading indicator is visible
       const apiCallPromise = fetch('/api/chat', {
@@ -383,7 +426,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       const aiResponse: AIResponse = await response.json();
 
       if (aiResponse.type === 'assistant') {
-        addMessage(aiResponse.content, 'assistant');
+        addMessage(aiResponse.content, 'assistant', conversationId);
       } else if (aiResponse.type === 'tickets') {
         // Handle ticket response
         setPendingTickets(aiResponse.tickets);
@@ -396,16 +439,26 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
           responseContent += aiResponse.clarificationQuestions.map(q => `• ${q}`).join('\n');
         }
         
-        addMessage(responseContent, 'assistant');
+        // Add message to UI but don't save to database (API already saved it with metadata)
+        addMessageToUIOnly(responseContent, 'assistant', conversationId);
       }
+
+      // Return the conversation ID for navigation
+      return conversationId;
 
     } catch (error) {
       console.error('Error sending message:', error);
-      addMessage('I apologize, but I encountered an error. Please try again.', 'assistant');
+      // Only add error message if we have a valid conversation ID
+      if (conversationId) {
+        addMessage('I apologize, but I encountered an error. Please try again.', 'assistant', conversationId);
+      } else {
+        addMessage('I apologize, but I encountered an error. Please try again.', 'assistant');
+      }
+      return conversationId; // Return the ID even on error if we have one
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading, currentConversationId, currentMode, currentProvider, providerConfigs, messages, createNewConversation, addMessage]);
+  }, [isLoading, currentConversationId, currentMode, currentProvider, providerConfigs, messages, createNewConversation, addMessage, addMessageToUIOnly]);
 
   const setMode = (mode: ChatMode) => {
     setCurrentMode(mode);
@@ -419,11 +472,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setCurrentProvider(provider);
   };
 
-  const clearMessages = () => {
+  const clearMessages = useCallback(() => {
     setMessages([]);
     setPendingTickets([]);
     setCurrentConversationId(null);
-  };
+  }, []);
 
   const approveTickets = () => {
     // Check if GitLab is configured
@@ -542,12 +595,28 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         setCurrentProvider(data.conversation.provider);
         
         setPendingTickets([]); // Clear any pending tickets
+      } else if (response.status === 404) {
+        // Conversation not found (likely deleted) - don't show error message
+        console.log('Conversation not found:', conversationId);
+        // Clear current state silently
+        setMessages([]);
+        setCurrentConversationId(null);
+        setPendingTickets([]);
+        // Throw a special error that the component can handle
+        throw new Error('CONVERSATION_NOT_FOUND');
       } else {
         throw new Error('Failed to load conversation');
       }
     } catch (error) {
       console.error('Failed to load conversation:', error);
-      addMessage('Failed to load conversation. Please try again.', 'assistant');
+      
+      // Only show error message for non-404 errors
+      if (error instanceof Error && error.message !== 'CONVERSATION_NOT_FOUND') {
+        addMessage('Failed to load conversation. Please try again.', 'assistant');
+      }
+      
+      // Re-throw the error so the component can handle it
+      throw error;
     } finally {
       setIsLoading(false);
     }

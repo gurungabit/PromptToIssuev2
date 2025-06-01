@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { ConversationSidebar } from './ConversationSidebar';
@@ -25,7 +26,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
     setProvider,
     isLoading, 
     pendingTickets,
-    sendMessage
+    sendMessage,
+    currentConversationId
   } = useChat();
   
   const { user, logout } = useAuth();
@@ -37,6 +39,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
   const [showProviderMenu, setShowProviderMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [ticketPanelCollapsed, setTicketPanelCollapsed] = useState(false);
+
+  const router = useRouter();
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -100,6 +104,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
 
   const hasMessages = messages.length > 0;
 
+  // Handle sending message and navigation
+  const handleSendMessage = async (content: string): Promise<string | null> => {
+    const wasNewConversation = !currentConversationId;
+    const conversationId = await sendMessage(content);
+    
+    // If this was a new conversation and we got a conversation ID, navigate to it
+    if (wasNewConversation && conversationId) {
+      router.push(`/conversation/${conversationId}`);
+    }
+    
+    return conversationId;
+  };
+
   return (
     <div className="flex h-screen bg-background">
       {/* Conversation Sidebar */}
@@ -111,7 +128,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="chat-header px-8 py-3 flex items-center justify-between">
+        <div className="chat-header px-8 py-3 flex items-center justify-between relative z-[9999]">
           {/* Left side - User info */}
           <div className="flex items-center gap-3">
             <div className="text-sm">
@@ -144,7 +161,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
               </Button>
               
               {showUserMenu && (
-                <div className="absolute top-full right-0 mt-2 w-48 glass rounded-[16px] shadow-xl z-50 border border-border/50">
+                <div className="absolute top-full right-0 mt-2 w-48 glass rounded-[16px] shadow-xl z-[9999] border border-border/50">
                   <div className="p-3">
                     <div className="pb-3 border-b border-border/50">
                       <p className="font-medium text-sm">{user?.fullName || user?.username}</p>
@@ -208,28 +225,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
                       <>
                         <div 
                           className="example-card cursor-pointer"
-                          onClick={() => sendMessage("Create a user authentication system with JWT tokens and role-based access")}
+                          onClick={() => handleSendMessage("Create a user authentication system with JWT tokens and role-based access")}
                         >
                           <h3 className="font-semibold mb-3 text-lg">🔐 Authentication System</h3>
                           <p className="text-muted-foreground leading-relaxed">Create a user authentication system with JWT tokens and role-based access</p>
                         </div>
                         <div 
                           className="example-card cursor-pointer"
-                          onClick={() => sendMessage("Fix the memory leak in the data processing pipeline affecting performance")}
+                          onClick={() => handleSendMessage("Fix the memory leak in the data processing pipeline affecting performance")}
                         >
                           <h3 className="font-semibold mb-3 text-lg">🐛 Bug Fix</h3>
                           <p className="text-muted-foreground leading-relaxed">Fix the memory leak in the data processing pipeline affecting performance</p>
                         </div>
                         <div 
                           className="example-card cursor-pointer"
-                          onClick={() => sendMessage("Add dark mode support to the dashboard with user preferences")}
+                          onClick={() => handleSendMessage("Add dark mode support to the dashboard with user preferences")}
                         >
                           <h3 className="font-semibold mb-3 text-lg">🎨 UI Enhancement</h3>
                           <p className="text-muted-foreground leading-relaxed">Add dark mode support to the dashboard with user preferences</p>
                         </div>
                         <div 
                           className="example-card cursor-pointer"
-                          onClick={() => sendMessage("Implement real-time analytics dashboard with charts and metrics")}
+                          onClick={() => handleSendMessage("Implement real-time analytics dashboard with charts and metrics")}
                         >
                           <h3 className="font-semibold mb-3 text-lg">📊 Analytics Feature</h3>
                           <p className="text-muted-foreground leading-relaxed">Implement real-time analytics dashboard with charts and metrics</p>
@@ -239,28 +256,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
                       <>
                         <div 
                           className="example-card cursor-pointer"
-                          onClick={() => sendMessage("How do I implement effective caching in my API?")}
+                          onClick={() => handleSendMessage("How do I implement effective caching in my API?")}
                         >
                           <h3 className="font-semibold mb-3 text-lg">💾 Caching Strategy</h3>
                           <p className="text-muted-foreground leading-relaxed">How do I implement effective caching in my API?</p>
                         </div>
                         <div 
                           className="example-card cursor-pointer"
-                          onClick={() => sendMessage("What's the best way to structure a large React project?")}
+                          onClick={() => handleSendMessage("What's the best way to structure a large React project?")}
                         >
                           <h3 className="font-semibold mb-3 text-lg">⚛️ React Best Practices</h3>
                           <p className="text-muted-foreground leading-relaxed">What&apos;s the best way to structure a large React project?</p>
                         </div>
                         <div 
                           className="example-card cursor-pointer"
-                          onClick={() => sendMessage("Explain the differences between SQL and NoSQL databases")}
+                          onClick={() => handleSendMessage("Explain the differences between SQL and NoSQL databases")}
                         >
                           <h3 className="font-semibold mb-3 text-lg">🗄️ Database Choice</h3>
                           <p className="text-muted-foreground leading-relaxed">Explain the differences between SQL and NoSQL databases</p>
                         </div>
                         <div 
                           className="example-card cursor-pointer"
-                          onClick={() => sendMessage("How can I optimize my web application for better performance?")}
+                          onClick={() => handleSendMessage("How can I optimize my web application for better performance?")}
                         >
                           <h3 className="font-semibold mb-3 text-lg">🚀 Performance</h3>
                           <p className="text-muted-foreground leading-relaxed">How can I optimize my web application for better performance?</p>
@@ -391,7 +408,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
                   </div>
 
                   {/* Chat Input */}
-                  <ChatInput />
+                  <ChatInput onSendMessage={handleSendMessage} />
                 </div>
               </div>
             </div>
@@ -400,18 +417,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
           {/* Tickets Preview Panel */}
           {pendingTickets.length > 0 && currentMode === 'ticket' && (
             <div className={cn(
-              "border-l bg-muted/20 overflow-y-auto scroll-area transition-all duration-300 ease-in-out relative",
+              "border-l bg-muted/20 overflow-y-auto scroll-area transition-all duration-300 ease-in-out relative z-10",
               ticketPanelCollapsed ? "w-12" : "w-[500px]"
             )}>
               {/* Toggle Button */}
               <button
                 onClick={() => setTicketPanelCollapsed(!ticketPanelCollapsed)}
-                className="absolute top-4 left-4 z-10 w-8 h-8 rounded-full bg-background border shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center"
+                className={`absolute z-10 w-8 h-8 rounded-full bg-background border shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center ${ticketPanelCollapsed ? "top-1 left-1" : "top-4 left-4"}`}
                 title={ticketPanelCollapsed ? "Expand Tickets Panel" : "Collapse Tickets Panel"}
               >
                 <ChevronDown className={cn(
-                  "w-4 h-4 transition-transform duration-200",
-                  ticketPanelCollapsed ? "rotate-90" : "-rotate-90"
+                  "w-4 h-4 transition-transform duration-200 cursor-pointer hover:scale-110 hover:shadow-md",
+                  ticketPanelCollapsed ? "rotate-90 text-green-500" : "-rotate-90 text-blue-500"
                 )} />
               </button>
               

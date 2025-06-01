@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -25,12 +26,12 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   isCollapsed,
   onToggle
 }) => {
+  const router = useRouter();
+  const pathname = usePathname();
+  
   const { 
     conversations, 
-    currentConversationId,
     currentMode,
-    createNewConversation,
-    loadConversation,
     deleteConversation,
     updateConversationTitle,
     loadConversationsForUser
@@ -72,12 +73,14 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   };
 
   const startNewConversation = () => {
-    createNewConversation();
+    // Navigate to home page for new chat - home page will clear state
+    router.push('/');
   };
 
   const handleConversationClick = (conversationId: string) => {
     if (editingId) return; // Don't load if editing
-    loadConversation(conversationId);
+    // Navigate to conversation route
+    router.push(`/conversation/${conversationId}`);
   };
 
   const handleEditStart = (conversationId: string, currentTitle: string) => {
@@ -109,8 +112,16 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   const handleDeleteConfirm = async () => {
     if (deleteConfirm) {
       try {
+        // Check if we're deleting the currently viewed conversation
+        const isCurrentConversation = pathname === `/conversation/${deleteConfirm.id}`;
+        
         await deleteConversation(deleteConfirm.id);
         setDeleteConfirm(null);
+        
+        // If we deleted the current conversation, navigate to home
+        if (isCurrentConversation) {
+          router.push('/');
+        }
       } catch (error) {
         console.error('Failed to delete conversation:', error);
       }
@@ -128,7 +139,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
           variant="ghost"
           size="icon"
           onClick={onToggle}
-          className="text-chat-sidebar-foreground hover:bg-muted rounded-2xl transition-all duration-200"
+          className="text-chat-sidebar-foreground hover:bg-muted rounded-2xl transition-all duration-200 cursor-pointer hover:scale-110 hover:shadow-md"
         >
           <PanelLeftOpen className="w-5 h-5" />
         </Button>
@@ -137,7 +148,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
           variant="ghost"
           size="icon"
           onClick={startNewConversation}
-          className="text-chat-sidebar-foreground hover:bg-muted rounded-2xl transition-all duration-200"
+          className="text-chat-sidebar-foreground hover:bg-muted rounded-2xl transition-all duration-200 cursor-pointer hover:scale-110 hover:shadow-md"
         >
           <Plus className="w-5 h-5" />
         </Button>
@@ -157,7 +168,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 variant="ghost"
                 size="icon"
                 onClick={onToggle}
-                className="text-chat-sidebar-foreground hover:bg-muted rounded-2xl w-8 h-8 transition-all duration-200"
+                className="text-chat-sidebar-foreground hover:bg-muted rounded-2xl w-8 h-8 transition-all duration-200 cursor-pointer hover:scale-110 hover:shadow-md"
               >
                 <PanelLeftClose className="w-4 h-4" />
               </Button>
@@ -165,7 +176,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
             
             <Button
               onClick={startNewConversation}
-              className="w-full bg-muted hover:opacity-80 text-chat-sidebar-foreground border-0 rounded-2xl py-3 transition-all duration-200 hover:scale-[1.02] btn-hover"
+              className="w-full bg-muted hover:opacity-80 text-chat-sidebar-foreground border-0 rounded-2xl py-3 transition-all duration-200 hover:scale-[1.02] btn-hover cursor-pointer hover:scale-110"
               variant="ghost"
             >
               <Plus className="w-4 h-4 mr-2" />
@@ -205,7 +216,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                   >
                     <button 
                       className={`conversation-item w-full text-left p-4 pr-16 hover:bg-muted transition-all rounded-2xl ${
-                        currentConversationId === conversation.id ? 'bg-muted border border-primary/30' : ''
+                        pathname === `/conversation/${conversation.id}` ? 'bg-muted border border-primary/30' : ''
                       }`}
                       onClick={() => handleConversationClick(conversation.id)}
                       disabled={editingId === conversation.id}
@@ -264,7 +275,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                           variant="ghost"
                           size="icon"
                           onClick={handleEditSave}
-                          className="w-6 h-6 text-green-500 hover:text-green-600 hover:bg-muted rounded-lg"
+                          className="w-6 h-6 text-green-500 hover:text-green-600 hover:bg-muted rounded-lg cursor-pointer hover:scale-110 hover:shadow-md"
                         >
                           <Check className="w-3 h-3" />
                         </Button>
@@ -272,7 +283,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                           variant="ghost"
                           size="icon"
                           onClick={handleEditCancel}
-                          className="w-6 h-6 text-red-500 hover:text-red-600 hover:bg-muted rounded-lg"
+                          className="w-6 h-6 text-red-500 hover:text-red-600 hover:bg-muted rounded-lg cursor-pointer hover:scale-110 hover:shadow-md"
                         >
                           <X className="w-3 h-3" />
                         </Button>
@@ -285,7 +296,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                             variant="ghost"
                             size="icon"
                             onClick={() => handleEditStart(conversation.id, conversation.title)}
-                            className="w-6 h-6 text-chat-sidebar-foreground/60 hover:text-chat-sidebar-foreground hover:bg-muted rounded-lg"
+                            className="w-6 h-6 text-chat-sidebar-foreground/60 hover:text-chat-sidebar-foreground hover:bg-muted rounded-lg cursor-pointer hover:scale-110 hover:shadow-md"
                           >
                             <Edit3 className="w-3 h-3" />
                           </Button>
@@ -293,7 +304,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                             variant="ghost"
                             size="icon"
                             onClick={() => handleDeleteClick(conversation.id, conversation.title)}
-                            className="w-6 h-6 text-chat-sidebar-foreground/60 hover:text-red-400 hover:bg-muted rounded-lg"
+                            className="w-6 h-6 text-chat-sidebar-foreground/60 hover:text-red-400 hover:bg-muted rounded-lg cursor-pointer hover:scale-110 hover:shadow-md"
                           >
                             <Trash2 className="w-3 h-3" />
                           </Button>

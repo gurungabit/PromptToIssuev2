@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
     // Verify conversation exists
     const existingConversation = await db
       .select({ id: conversations.id })
