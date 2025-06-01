@@ -127,7 +127,7 @@ const SharedConversationPage = () => {
         ) : (
           <div className="space-y-8">
             {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
+              <ChatMessage key={message.id} message={message} readOnly={true} />
             ))}
           </div>
         )}
