@@ -3,6 +3,12 @@ import { db } from '@/lib/db';
 import { conversations, messages } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
+// Helper function to validate UUID format
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -15,6 +21,14 @@ export async function GET(
       return NextResponse.json(
         { error: 'Conversation ID is required' },
         { status: 400 }
+      );
+    }
+
+    // Validate UUID format
+    if (!isValidUUID(conversationId)) {
+      return NextResponse.json(
+        { error: 'Conversation not found' },
+        { status: 404 }
       );
     }
 
@@ -87,6 +101,14 @@ export async function PATCH(
       );
     }
 
+    // Validate UUID format
+    if (!isValidUUID(conversationId)) {
+      return NextResponse.json(
+        { error: 'Conversation not found' },
+        { status: 404 }
+      );
+    }
+
     if (!title) {
       return NextResponse.json(
         { error: 'Title is required' },
@@ -136,6 +158,14 @@ export async function DELETE(
       return NextResponse.json(
         { error: 'Conversation ID is required' },
         { status: 400 }
+      );
+    }
+
+    // Validate UUID format
+    if (!isValidUUID(conversationId)) {
+      return NextResponse.json(
+        { error: 'Conversation not found' },
+        { status: 404 }
       );
     }
 

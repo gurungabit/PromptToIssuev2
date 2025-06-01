@@ -596,7 +596,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         
         setPendingTickets([]); // Clear any pending tickets
       } else if (response.status === 404) {
-        // Conversation not found (likely deleted) - don't show error message
+        // Conversation not found (likely deleted or invalid ID) - don't show error message
         console.log('Conversation not found:', conversationId);
         // Clear current state silently
         setMessages([]);
@@ -605,22 +605,31 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         // Throw a special error that the component can handle
         throw new Error('CONVERSATION_NOT_FOUND');
       } else {
-        throw new Error('Failed to load conversation');
+        // For other errors (500, etc.), also treat as not found
+        console.log('Error loading conversation (treating as not found):', response.status, conversationId);
+        setMessages([]);
+        setCurrentConversationId(null);
+        setPendingTickets([]);
+        throw new Error('CONVERSATION_NOT_FOUND');
       }
     } catch (error) {
       console.error('Failed to load conversation:', error);
       
-      // Only show error message for non-404 errors
-      if (error instanceof Error && error.message !== 'CONVERSATION_NOT_FOUND') {
-        addMessage('Failed to load conversation. Please try again.', 'assistant');
+      // If it's already our special error, re-throw it
+      if (error instanceof Error && error.message === 'CONVERSATION_NOT_FOUND') {
+        throw error;
       }
       
-      // Re-throw the error so the component can handle it
-      throw error;
+      // For network errors or other issues, also treat as not found
+      console.log('Network or other error loading conversation (treating as not found):', conversationId);
+      setMessages([]);
+      setCurrentConversationId(null);
+      setPendingTickets([]);
+      throw new Error('CONVERSATION_NOT_FOUND');
     } finally {
       setIsLoading(false);
     }
-  }, [addMessage]);
+  }, []);
 
   const deleteConversation = useCallback(async (conversationId: string) => {
     try {
