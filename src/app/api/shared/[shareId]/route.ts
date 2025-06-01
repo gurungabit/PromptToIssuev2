@@ -3,18 +3,12 @@ import { db } from '@/lib/db';
 import { conversations, messages } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { shareId: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { shareId: string } }) {
   try {
     const { shareId } = await params;
 
     if (!shareId) {
-      return NextResponse.json(
-        { error: 'Share ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Share ID is required' }, { status: 400 });
     }
 
     // Get conversation by share ID (no user authentication required)
@@ -25,10 +19,7 @@ export async function GET(
       .limit(1);
 
     if (!conversation) {
-      return NextResponse.json(
-        { error: 'Shared conversation not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Shared conversation not found' }, { status: 404 });
     }
 
     // Get messages for this conversation
@@ -61,12 +52,8 @@ export async function GET(
       },
       messages: transformedMessages,
     });
-
   } catch (error) {
     console.error('Error fetching shared conversation:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

@@ -10,18 +10,11 @@ export async function POST(request: NextRequest) {
     console.log('Login request received:', { email, username });
 
     if (!email && !username) {
-      return NextResponse.json(
-        { message: 'Email and username are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: 'Email and username are required' }, { status: 400 });
     }
 
     // Try to find existing user by email or username
-    const existingUser = await db
-      .select()
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
+    const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
     let user;
 
@@ -37,9 +30,9 @@ export async function POST(request: NextRequest) {
       user = existingUser[0];
       await db
         .update(users)
-        .set({ 
+        .set({
           lastLogin: new Date(),
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(users.id, user.id));
     } else {
@@ -96,14 +89,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user,
-      message: existingUser.length > 0 ? 'Login successful' : 'Account created and logged in'
+      message: existingUser.length > 0 ? 'Login successful' : 'Account created and logged in',
     });
-
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

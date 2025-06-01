@@ -1,9 +1,9 @@
-import type { LLMConfig, ChatMode, AIResponse } from "../schemas";
-import { AIResponseSchema } from "../schemas";
+import type { LLMConfig, ChatMode, AIResponse } from '../schemas';
+import { AIResponseSchema } from '../schemas';
 
 // Base message structure for LLM providers
 export interface LLMMessage {
-  role: "user" | "assistant" | "system";
+  role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
@@ -72,7 +72,7 @@ export abstract class BaseLLMProvider {
    * @returns System prompt string
    */
   protected buildSystemPrompt(mode: ChatMode): string {
-    if (mode === "ticket") {
+    if (mode === 'ticket') {
       return `You are an expert software development assistant specialized in creating detailed, well-structured tickets and issues. Your role is to analyze user requirements and break them down into actionable tickets.
 
 When responding, you MUST return a JSON object that matches this exact schema:
@@ -192,28 +192,35 @@ Always ensure your response is valid JSON and follows this exact structure.`;
   protected parseResponse(response: string, mode: ChatMode): AIResponse {
     try {
       // Try to extract JSON from the response if it's wrapped in markdown or other text
-      const jsonMatch = response.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || 
-                       response.match(/(\{[\s\S]*\})/);
-      
+      const jsonMatch =
+        response.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/) || response.match(/(\{[\s\S]*\})/);
+
       const jsonStr = jsonMatch ? jsonMatch[1] : response;
       const parsed = JSON.parse(jsonStr);
 
       return AIResponseSchema.parse(parsed);
     } catch {
       // Fallback response if parsing fails
-      if (mode === "ticket") {
+      if (mode === 'ticket') {
         return {
-          type: "tickets",
+          type: 'tickets',
           tickets: [],
-          reasoning: "Failed to parse the requirements. Please provide more specific details about what you'd like to implement.",
+          reasoning:
+            "Failed to parse the requirements. Please provide more specific details about what you'd like to implement.",
           needsClarification: true,
-          clarificationQuestions: ["Could you provide more specific details about the requirements?"]
+          clarificationQuestions: [
+            'Could you provide more specific details about the requirements?',
+          ],
         };
       } else {
         return {
-          type: "assistant",
-          content: "I apologize, but I encountered an error processing your request. Could you please rephrase your question?",
-          suggestions: ["Try asking your question in a different way", "Provide more specific details about what you need help with"]
+          type: 'assistant',
+          content:
+            'I apologize, but I encountered an error processing your request. Could you please rephrase your question?',
+          suggestions: [
+            'Try asking your question in a different way',
+            'Provide more specific details about what you need help with',
+          ],
         };
       }
     }
@@ -229,10 +236,7 @@ export class LLMProviderRegistry {
    * @param providerId - Unique identifier for the provider
    * @param providerFactory - Factory function that creates provider instance
    */
-  registerProvider(
-    providerId: string, 
-    providerFactory: () => Promise<BaseLLMProvider>
-  ): void {
+  registerProvider(providerId: string, providerFactory: () => Promise<BaseLLMProvider>): void {
     this.providers.set(providerId, providerFactory);
   }
 
@@ -244,7 +248,7 @@ export class LLMProviderRegistry {
   async getProvider(providerId: string): Promise<BaseLLMProvider | null> {
     const factory = this.providers.get(providerId);
     if (!factory) return null;
-    
+
     try {
       return await factory();
     } catch (error) {
@@ -272,4 +276,4 @@ export class LLMProviderRegistry {
 }
 
 // Global registry instance
-export const llmRegistry = new LLMProviderRegistry(); 
+export const llmRegistry = new LLMProviderRegistry();

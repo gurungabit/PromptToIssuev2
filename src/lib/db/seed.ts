@@ -5,12 +5,15 @@ export async function seedDatabase() {
   console.log('🌱 Seeding database...');
 
   // Create a demo user
-  const [demoUser] = await db.insert(users).values({
-    email: 'demo@example.com',
-    username: 'demo_user',
-    fullName: 'Demo User',
-    isActive: true,
-  }).returning();
+  const [demoUser] = await db
+    .insert(users)
+    .values({
+      email: 'demo@example.com',
+      username: 'demo_user',
+      fullName: 'Demo User',
+      isActive: true,
+    })
+    .returning();
 
   console.log('✅ Created demo user:', demoUser.id);
 
@@ -80,13 +83,16 @@ export async function seedDatabase() {
   console.log('✅ Created provider configs');
 
   // Create a demo conversation
-  const [demoConversation] = await db.insert(conversations).values({
-    userId: demoUser.id,
-    title: 'Getting Started with AI Assistant',
-    mode: 'assistant',
-    provider: 'ollama',
-    lastMessageAt: new Date(),
-  }).returning();
+  const [demoConversation] = await db
+    .insert(conversations)
+    .values({
+      userId: demoUser.id,
+      title: 'Getting Started with AI Assistant',
+      mode: 'assistant',
+      provider: 'ollama',
+      lastMessageAt: new Date(),
+    })
+    .returning();
 
   console.log('✅ Created demo conversation:', demoConversation.id);
 
@@ -102,7 +108,8 @@ export async function seedDatabase() {
     {
       conversationId: demoConversation.id,
       role: 'assistant',
-      content: 'Hello! I\'d be happy to help you understand the AI ticket automation system. This platform allows you to:\n\n1. **Assistant Mode**: Ask questions and get help with coding, architecture, and development challenges\n2. **Ticket Mode**: Describe features, bugs, or requirements, and I\'ll generate structured tickets with acceptance criteria and task breakdowns\n\nYou can switch between modes using the toggle in the interface. Would you like me to demonstrate either mode?',
+      content:
+        "Hello! I'd be happy to help you understand the AI ticket automation system. This platform allows you to:\n\n1. **Assistant Mode**: Ask questions and get help with coding, architecture, and development challenges\n2. **Ticket Mode**: Describe features, bugs, or requirements, and I'll generate structured tickets with acceptance criteria and task breakdowns\n\nYou can switch between modes using the toggle in the interface. Would you like me to demonstrate either mode?",
       mode: 'assistant',
       metadata: {},
     },
@@ -120,8 +127,8 @@ if (require.main === module) {
       console.log('Seeding completed');
       process.exit(0);
     })
-    .catch((error) => {
+    .catch(error => {
       console.error('Seeding failed:', error);
       process.exit(1);
     });
-} 
+}

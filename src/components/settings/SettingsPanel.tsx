@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -6,16 +6,16 @@ import { Input } from '@/components/ui/Input';
 import { useChat } from '@/contexts/ChatContext';
 import { GitLabSettings } from './GitLabSettings';
 import type { LLMProvider, LLMConfig } from '@/lib/schemas';
-import { 
+import {
   X,
-  Settings, 
-  Eye, 
-  EyeOff, 
-  Bot, 
+  Settings,
+  Eye,
+  EyeOff,
+  Bot,
   Github,
-  CheckCircle, 
+  CheckCircle,
   AlertTriangle,
-  AlertCircle
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,17 +24,14 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
-  const { 
-    currentProvider, 
-    setProvider, 
-    providerConfigs, 
-    updateProviderConfig 
-  } = useChat();
-  
+  const { currentProvider, setProvider, providerConfigs, updateProviderConfig } = useChat();
+
   const [activeTab, setActiveTab] = useState<'providers' | 'platforms'>('providers');
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string } | null>>({});
+  const [testResults, setTestResults] = useState<
+    Record<string, { success: boolean; message: string } | null>
+  >({});
 
   const providers: { id: LLMProvider; name: string; icon: React.ReactNode }[] = [
     { id: 'openai', name: 'OpenAI', icon: <Bot className="w-5 h-5" /> },
@@ -44,8 +41,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   ];
 
   const handleProviderConfigUpdate = (
-    provider: LLMProvider, 
-    field: keyof LLMConfig, 
+    provider: LLMProvider,
+    field: keyof LLMConfig,
     value: string | number
   ) => {
     updateProviderConfig(provider, { [field]: value });
@@ -74,22 +71,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
       });
 
       const result = await response.json();
-      
+
       if (result.success) {
-        setTestResults(prev => ({ 
-          ...prev, 
-          [provider]: { success: true, message: 'Connection successful!' }
+        setTestResults(prev => ({
+          ...prev,
+          [provider]: { success: true, message: 'Connection successful!' },
         }));
       } else {
-        setTestResults(prev => ({ 
-          ...prev, 
-          [provider]: { success: false, message: result.error || 'Connection failed' }
+        setTestResults(prev => ({
+          ...prev,
+          [provider]: { success: false, message: result.error || 'Connection failed' },
         }));
       }
     } catch {
-      setTestResults(prev => ({ 
-        ...prev, 
-        [provider]: { success: false, message: 'Failed to test connection' }
+      setTestResults(prev => ({
+        ...prev,
+        [provider]: { success: false, message: 'Failed to test connection' },
       }));
     } finally {
       setTestingProvider(null);
@@ -110,7 +107,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
               </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="hover:bg-accent hover:scale-110 transition-all duration-200 cursor-pointer">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="hover:bg-accent hover:scale-110 transition-all duration-200 cursor-pointer"
+          >
             <X className="w-5 h-5" />
           </Button>
         </div>
@@ -119,10 +121,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         <div className="flex border-b bg-background">
           <button
             className={cn(
-              "px-6 py-3 text-sm font-medium border-b-2 transition-all duration-300 cursor-pointer hover:bg-accent/50",
+              'px-6 py-3 text-sm font-medium border-b-2 transition-all duration-300 cursor-pointer hover:bg-accent/50',
               activeTab === 'providers'
-                ? "border-primary text-primary bg-primary/5"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
             onClick={() => setActiveTab('providers')}
           >
@@ -130,10 +132,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
           </button>
           <button
             className={cn(
-              "px-6 py-3 text-sm font-medium border-b-2 transition-all duration-300 cursor-pointer hover:bg-accent/50",
+              'px-6 py-3 text-sm font-medium border-b-2 transition-all duration-300 cursor-pointer hover:bg-accent/50',
               activeTab === 'platforms'
-                ? "border-primary text-primary bg-primary/5"
-                : "border-transparent text-muted-foreground hover:text-foreground"
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
             onClick={() => setActiveTab('platforms')}
           >
@@ -149,16 +151,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
               <div className="bg-muted/50 rounded-lg p-4">
                 <h3 className="font-medium mb-2">Current Provider</h3>
                 <div className="flex items-center gap-4">
-                  {providers.map((provider) => (
+                  {providers.map(provider => (
                     <Button
                       variant="outline"
                       key={provider.id}
                       onClick={() => setProvider(provider.id)}
                       className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer",
+                        'flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 cursor-pointer',
                         currentProvider === provider.id
-                          ? "bg-primary text-primary-foreground shadow-lg scale-105 hover:shadow-xl hover:scale-110 text-green-500"
-                          : "bg-background hover:bg-accent hover:scale-105 hover:shadow-md border border-transparent hover:border-border"
+                          ? 'bg-primary text-primary-foreground shadow-lg scale-105 hover:shadow-xl hover:scale-110 text-green-500'
+                          : 'bg-background hover:bg-accent hover:scale-105 hover:shadow-md border border-transparent hover:border-border'
                       )}
                     >
                       {provider.icon}
@@ -170,8 +172,11 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
               {/* Provider Configurations */}
               <div className="space-y-6">
-                {providers.map((provider) => (
-                  <div key={provider.id} className="border rounded-lg p-6 hover:border-primary/30 transition-all duration-200">
+                {providers.map(provider => (
+                  <div
+                    key={provider.id}
+                    className="border rounded-lg p-6 hover:border-primary/30 transition-all duration-200"
+                  >
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         {provider.icon}
@@ -202,18 +207,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                       {/* API Key */}
                       {provider.id !== 'ollama' && (
                         <div>
-                          <label className="text-sm font-medium mb-2 block">
-                            API Key
-                          </label>
+                          <label className="text-sm font-medium mb-2 block">API Key</label>
                           <div className="relative">
                             <Input
                               type={showApiKeys[provider.id] ? 'text' : 'password'}
                               value={providerConfigs[provider.id]?.apiKey || ''}
-                              onChange={(e) => handleProviderConfigUpdate(
-                                provider.id, 
-                                'apiKey', 
-                                e.target.value
-                              )}
+                              onChange={e =>
+                                handleProviderConfigUpdate(provider.id, 'apiKey', e.target.value)
+                              }
                               placeholder="Enter API key"
                               className="pr-10 focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                             />
@@ -244,16 +245,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                             )}
                           </label>
                           <Input
-                            value={providerConfigs[provider.id]?.baseUrl || (provider.id === 'ollama' ? 'http://localhost:11434' : '')}
-                            onChange={(e) => handleProviderConfigUpdate(
-                              provider.id, 
-                              'baseUrl', 
-                              e.target.value
-                            )}
+                            value={
+                              providerConfigs[provider.id]?.baseUrl ||
+                              (provider.id === 'ollama' ? 'http://localhost:11434' : '')
+                            }
+                            onChange={e =>
+                              handleProviderConfigUpdate(provider.id, 'baseUrl', e.target.value)
+                            }
                             placeholder={
-                              provider.id === 'ollama' 
-                                ? "http://localhost:11434" 
-                                : "https://openrouter.ai/api/v1"
+                              provider.id === 'ollama'
+                                ? 'http://localhost:11434'
+                                : 'https://openrouter.ai/api/v1'
                             }
                             className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                           />
@@ -267,16 +269,12 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
                       {/* Model */}
                       <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Model
-                        </label>
+                        <label className="text-sm font-medium mb-2 block">Model</label>
                         <Input
                           value={providerConfigs[provider.id]?.model || ''}
-                          onChange={(e) => handleProviderConfigUpdate(
-                            provider.id, 
-                            'model', 
-                            e.target.value
-                          )}
+                          onChange={e =>
+                            handleProviderConfigUpdate(provider.id, 'model', e.target.value)
+                          }
                           placeholder="e.g., gpt-3.5-turbo"
                           className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                         />
@@ -284,52 +282,54 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
                       {/* Temperature */}
                       <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Temperature
-                        </label>
+                        <label className="text-sm font-medium mb-2 block">Temperature</label>
                         <Input
                           type="number"
                           min="0"
                           max="2"
                           step="0.1"
                           value={providerConfigs[provider.id]?.temperature || 0.7}
-                          onChange={(e) => handleProviderConfigUpdate(
-                            provider.id, 
-                            'temperature', 
-                            parseFloat(e.target.value)
-                          )}
+                          onChange={e =>
+                            handleProviderConfigUpdate(
+                              provider.id,
+                              'temperature',
+                              parseFloat(e.target.value)
+                            )
+                          }
                           className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                         />
                       </div>
 
                       {/* Max Tokens */}
                       <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Max Tokens
-                        </label>
+                        <label className="text-sm font-medium mb-2 block">Max Tokens</label>
                         <Input
                           type="number"
                           min="1"
                           max="32000"
                           value={providerConfigs[provider.id]?.maxTokens || 4000}
-                          onChange={(e) => handleProviderConfigUpdate(
-                            provider.id, 
-                            'maxTokens', 
-                            parseInt(e.target.value)
-                          )}
+                          onChange={e =>
+                            handleProviderConfigUpdate(
+                              provider.id,
+                              'maxTokens',
+                              parseInt(e.target.value)
+                            )
+                          }
                           className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                         />
                       </div>
                     </div>
-                    
+
                     {/* Test Result */}
                     {testResults[provider.id] && (
-                      <div className={cn(
-                        "mt-4 p-3 rounded-lg border flex items-center gap-2 animate-in fade-in-0 slide-in-from-top-1 duration-300",
-                        testResults[provider.id]?.success 
-                          ? "bg-green-50 border-green-200 text-green-800 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200"
-                          : "bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200"
-                      )}>
+                      <div
+                        className={cn(
+                          'mt-4 p-3 rounded-lg border flex items-center gap-2 animate-in fade-in-0 slide-in-from-top-1 duration-300',
+                          testResults[provider.id]?.success
+                            ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200'
+                            : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
+                        )}
+                      >
                         {testResults[provider.id]?.success ? (
                           <CheckCircle className="w-4 h-4 animate-pulse" />
                         ) : (
@@ -347,7 +347,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
           {activeTab === 'platforms' && (
             <div className="space-y-6">
               <GitLabSettings />
-              
+
               {/* GitHub placeholder for future */}
               <div className="border rounded-lg p-6 opacity-60 hover:opacity-80 transition-all duration-300">
                 <div className="flex items-center gap-3 mb-4">
@@ -372,14 +372,14 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
         {/* Footer */}
         <div className="flex justify-end gap-3 p-6 border-t bg-background">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={onClose}
             className="cursor-pointer hover:bg-accent hover:border-accent-foreground hover:scale-105 hover:shadow-md transition-all duration-200"
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             variant="outline"
             onClick={onClose}
             className="cursor-pointer bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary hover:scale-105 hover:shadow-lg transition-all duration-200"
@@ -392,4 +392,4 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   );
 };
 
-export { SettingsPanel }; 
+export { SettingsPanel };

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useChat } from '@/contexts/ChatContext';
@@ -18,10 +18,10 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    
+
     const message = input.trim();
     setInput('');
-    
+
     // Use custom send function if provided, otherwise use context
     if (onSendMessage) {
       await onSendMessage(message);
@@ -46,9 +46,10 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
     }
   }, [input]);
 
-  const placeholder = currentMode === 'ticket' 
-    ? "Describe your feature, bug, or requirements..."
-    : "Ask me anything...";
+  const placeholder =
+    currentMode === 'ticket'
+      ? 'Describe your feature, bug, or requirements...'
+      : 'Ask me anything...';
 
   const canSend = input.trim() && !isLoading;
 
@@ -71,15 +72,15 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
           <textarea
             ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={isLoading}
             className={cn(
-              "w-full resize-none bg-transparent text-foreground placeholder:text-muted-foreground/60",
-              "border-0 outline-0 focus:ring-0 min-h-[24px] max-h-[200px] py-2",
-              "leading-6 text-base font-medium placeholder:font-normal",
-              "scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
+              'w-full resize-none bg-transparent text-foreground placeholder:text-muted-foreground/60',
+              'border-0 outline-0 focus:ring-0 min-h-[24px] max-h-[200px] py-2',
+              'leading-6 text-base font-medium placeholder:font-normal',
+              'scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent'
             )}
             rows={1}
           />
@@ -101,17 +102,13 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
           disabled={!canSend && !isLoading}
           size="icon"
           className={cn(
-            "flex-shrink-0 w-10 h-10 rounded-xl transition-all duration-200 cursor-pointer",
+            'flex-shrink-0 w-10 h-10 rounded-xl transition-all duration-200 cursor-pointer',
             canSend || isLoading
-              ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl hover:scale-105"
-              : "bg-muted text-muted-foreground cursor-not-allowed"
+              ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl hover:scale-105'
+              : 'bg-muted text-muted-foreground cursor-not-allowed'
           )}
         >
-          {isLoading ? (
-            <Square className="w-4 h-4" />
-          ) : (
-            <Send className="w-4 h-4" />
-          )}
+          {isLoading ? <Square className="w-4 h-4" /> : <Send className="w-4 h-4" />}
         </Button>
       </div>
 
@@ -125,4 +122,4 @@ const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
   );
 };
 
-export { ChatInput }; 
+export { ChatInput };

@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -25,7 +25,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: admin@example.com
       PGADMIN_DEFAULT_PASSWORD: admin
     ports:
-      - "5050:80"
+      - '5050:80'
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     networks:
@@ -39,4 +39,4 @@ volumes:
 
 networks:
   app-network:
-    driver: bridge 
+    driver: bridge

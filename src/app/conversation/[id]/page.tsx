@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -14,7 +14,7 @@ const ConversationPage = () => {
   const { loadConversation, currentConversationId } = useChat();
   const { isAuthenticated } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
-  
+
   const conversationId = params.id as string;
 
   // Load conversation when component mounts or ID changes
@@ -38,12 +38,10 @@ const ConversationPage = () => {
   return (
     <main className="h-screen overflow-hidden">
       <ChatInterface onOpenSettings={() => setShowSettings(true)} />
-      
-      {showSettings && (
-        <SettingsPanel onClose={() => setShowSettings(false)} />
-      )}
+
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
     </main>
   );
 };
 
-export default ConversationPage; 
+export default ConversationPage;

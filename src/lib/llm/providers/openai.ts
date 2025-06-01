@@ -1,6 +1,6 @@
-import OpenAI from "openai";
-import { BaseLLMProvider, type LLMMessage, type LLMRequestConfig } from "../base";
-import type { LLMConfig, ChatMode, AIResponse } from "../../schemas";
+import OpenAI from 'openai';
+import { BaseLLMProvider, type LLMMessage, type LLMRequestConfig } from '../base';
+import type { LLMConfig, ChatMode, AIResponse } from '../../schemas';
 
 export class OpenAIProvider extends BaseLLMProvider {
   private client: OpenAI | null = null;
@@ -16,11 +16,11 @@ export class OpenAIProvider extends BaseLLMProvider {
   }
 
   getProviderId(): string {
-    return "openai";
+    return 'openai';
   }
 
   getProviderName(): string {
-    return "OpenAI";
+    return 'OpenAI';
   }
 
   async validateConfiguration(): Promise<boolean> {
@@ -29,17 +29,18 @@ export class OpenAIProvider extends BaseLLMProvider {
 
   async testConnection(): Promise<{ success: boolean; error?: string }> {
     if (!this.client) {
-      return { success: false, error: "OpenAI client not initialized. Please check your API key." };
+      return { success: false, error: 'OpenAI client not initialized. Please check your API key.' };
     }
 
     try {
       await this.client.models.list();
       return { success: true };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to connect to OpenAI API";
-      return { 
-        success: false, 
-        error: errorMessage
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to connect to OpenAI API';
+      return {
+        success: false,
+        error: errorMessage,
       };
     }
   }
@@ -54,8 +55,8 @@ export class OpenAIProvider extends BaseLLMProvider {
         .map(model => model.id)
         .sort();
     } catch (error) {
-      console.error("Failed to fetch OpenAI models:", error);
-      return ["gpt-3.5-turbo", "gpt-4", "gpt-4-turbo-preview"];
+      console.error('Failed to fetch OpenAI models:', error);
+      return ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo-preview'];
     }
   }
 
@@ -65,51 +66,50 @@ export class OpenAIProvider extends BaseLLMProvider {
     requestConfig?: LLMRequestConfig
   ): Promise<AIResponse> {
     if (!this.client) {
-      throw new Error("OpenAI client not initialized");
+      throw new Error('OpenAI client not initialized');
     }
 
     const systemPrompt = this.buildSystemPrompt(mode);
     const messagesWithSystem: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
-      { role: "system", content: systemPrompt },
+      { role: 'system', content: systemPrompt },
       ...messages.map(msg => ({
-        role: msg.role as "user" | "assistant",
+        role: msg.role as 'user' | 'assistant',
         content: msg.content,
       })),
     ];
-    
 
     try {
       const response = await this.client.chat.completions.create({
-        model: requestConfig?.model || this.config.model || "gpt-3.5-turbo",
+        model: requestConfig?.model || this.config.model || 'gpt-3.5-turbo',
         messages: messagesWithSystem,
         max_tokens: requestConfig?.maxTokens || this.config.maxTokens || 4000,
         temperature: requestConfig?.temperature ?? this.config.temperature ?? 0.7,
-        response_format: { type: "json_object" },
+        response_format: { type: 'json_object' },
       });
 
       const content = response.choices[0]?.message?.content;
       if (!content) {
-        throw new Error("No response content from OpenAI");
+        throw new Error('No response content from OpenAI');
       }
 
       return this.parseResponse(content, mode);
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      console.error("OpenAI API error:", error);
-      
-      if (mode === "ticket") {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('OpenAI API error:', error);
+
+      if (mode === 'ticket') {
         return {
-          type: "tickets",
+          type: 'tickets',
           tickets: [],
           reasoning: `Error generating tickets: ${errorMessage}`,
           needsClarification: true,
-          clarificationQuestions: ["Could you please try again with a different description?"]
+          clarificationQuestions: ['Could you please try again with a different description?'],
         };
       } else {
         return {
-          type: "assistant",
+          type: 'assistant',
           content: `I apologize, but I encountered an error: ${errorMessage}. Please try again.`,
-          suggestions: ["Try rephrasing your question", "Check if the service is available"]
+          suggestions: ['Try rephrasing your question', 'Check if the service is available'],
         };
       }
     }
@@ -118,4 +118,4 @@ export class OpenAIProvider extends BaseLLMProvider {
 
 export const createOpenAIProvider = async (config: LLMConfig): Promise<OpenAIProvider> => {
   return new OpenAIProvider(config);
-}; 
+};

@@ -1,17 +1,24 @@
-"use client";
+'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { generateId } from '@/lib/utils';
-import type { 
-  Message, 
-  ChatMode, 
-  LLMProvider, 
-  LLMConfig, 
+import type {
+  Message,
+  ChatMode,
+  LLMProvider,
+  LLMConfig,
   AIResponse,
   Ticket,
   GitLabConfig,
-  ProjectSelection
+  ProjectSelection,
 } from '@/lib/schemas';
 
 // Custom conversation type for UI
@@ -34,15 +41,15 @@ interface ChatContextType {
   currentProvider: LLMProvider;
   isLoading: boolean;
   pendingTickets: Ticket[];
-  
+
   // Conversation Management
   conversations: UIConversation[];
   currentConversationId: string | null;
-  
+
   // GitLab Integration
   gitlabConfig: GitLabConfig | null;
   showProjectSelection: boolean;
-  
+
   // Actions
   sendMessage: (content: string) => Promise<string | null>;
   setMode: (mode: ChatMode) => void;
@@ -53,23 +60,23 @@ interface ChatContextType {
   rejectTickets: () => void;
   editTicket: (ticketId: string, updates: Partial<Ticket>) => void;
   setPendingTickets: (tickets: Ticket[]) => void;
-  
+
   // Conversation Actions
   createNewConversation: (title?: string, clearUI?: boolean) => void;
   loadConversation: (conversationId: string) => Promise<void>;
   deleteConversation: (conversationId: string) => void;
   updateConversationTitle: (conversationId: string, title: string) => void;
   loadConversationsForUser: (userId: string) => void;
-  
+
   // Share Actions
   createShareLink: (conversationId: string) => Promise<{ shareId: string; shareUrl: string }>;
   removeShareLink: (conversationId: string) => Promise<void>;
-  
+
   // GitLab Actions
   setGitLabConfig: (config: GitLabConfig) => void;
   createGitLabIssues: (tickets: Ticket[], projectSelection: ProjectSelection) => Promise<void>;
   setShowProjectSelection: (show: boolean) => void;
-  
+
   // Configuration
   providerConfigs: Record<LLMProvider, LLMConfig>;
   updateProviderConfig: (provider: LLMProvider, config: Partial<LLMConfig>) => void;
@@ -90,7 +97,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [currentProvider, setCurrentProvider] = useState<LLMProvider>('ollama');
   const [isLoading, setIsLoading] = useState(false);
   const [pendingTickets, setPendingTickets] = useState<Ticket[]>([]);
-  
+
   // Conversation state - using a custom type that matches our API response
   const [conversations, setConversations] = useState<UIConversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
@@ -133,21 +140,20 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     if (user?.id) {
       headers['x-user-id'] = user.id;
     }
-    
+
     return headers;
   }, [user?.id]);
 
   // Load persisted state from localStorage
   useEffect(() => {
-
     const savedMode = localStorage.getItem('chatMode') as ChatMode;
     const savedProvider = localStorage.getItem('chatProvider') as LLMProvider;
     const savedConfigs = localStorage.getItem('providerConfigs');
-    
+
     if (savedMode) setCurrentMode(savedMode);
     if (savedProvider) setCurrentProvider(savedProvider);
     if (savedConfigs) {
@@ -199,104 +205,113 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   }, [gitlabConfig]);
 
   // Helper function to save messages to database
-  const saveMessageToDatabase = useCallback(async (conversationId: string, role: 'user' | 'assistant', content: string) => {
-    try {
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          conversationId,
-          role,
-          content,
-          mode: currentMode,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save message');
-      }
-    } catch (error) {
-      console.error('Database error saving message:', error);
-      // Don't throw - we don't want to break the UI if database save fails
-    }
-  }, [currentMode]);
-
-  const addMessage = useCallback((content: string, role: 'user' | 'assistant', conversationId?: string) => {
-    const newMessage: Message = {
-      id: generateId(),
-      role,
-      content,
-      timestamp: new Date(),
-      mode: currentMode,
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
-    
-    // Use the provided conversationId or fall back to currentConversationId
-    const targetConversationId = conversationId || currentConversationId;
-    
-    // Update message count for current conversation
-    if (targetConversationId) {
-      setConversations(prev => 
-        prev.map(conv => 
-          conv.id === targetConversationId 
-            ? { 
-                ...conv, 
-                messageCount: conv.messageCount + 1,
-                lastMessage: content.length > 50 ? content.substring(0, 50) + '...' : content,
-                timestamp: new Date()
-              }
-            : conv
-        )
-      );
-      
-      // Only save message to database if conversationId is not provided (no active conversation)
-      // When conversationId is provided, the API already handles saving to avoid duplicates
-      if (!conversationId && targetConversationId) {
-        saveMessageToDatabase(targetConversationId, role, content).catch(error => {
-          console.error('Failed to save message to database:', error);
+  const saveMessageToDatabase = useCallback(
+    async (conversationId: string, role: 'user' | 'assistant', content: string) => {
+      try {
+        const response = await fetch('/api/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversationId,
+            role,
+            content,
+            mode: currentMode,
+          }),
         });
+
+        if (!response.ok) {
+          throw new Error('Failed to save message');
+        }
+      } catch (error) {
+        console.error('Database error saving message:', error);
+        // Don't throw - we don't want to break the UI if database save fails
       }
-    }
-    
-    return newMessage;
-  }, [currentConversationId, currentMode, saveMessageToDatabase]);
+    },
+    [currentMode]
+  );
+
+  const addMessage = useCallback(
+    (content: string, role: 'user' | 'assistant', conversationId?: string) => {
+      const newMessage: Message = {
+        id: generateId(),
+        role,
+        content,
+        timestamp: new Date(),
+        mode: currentMode,
+      };
+
+      setMessages(prev => [...prev, newMessage]);
+
+      // Use the provided conversationId or fall back to currentConversationId
+      const targetConversationId = conversationId || currentConversationId;
+
+      // Update message count for current conversation
+      if (targetConversationId) {
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === targetConversationId
+              ? {
+                  ...conv,
+                  messageCount: conv.messageCount + 1,
+                  lastMessage: content.length > 50 ? content.substring(0, 50) + '...' : content,
+                  timestamp: new Date(),
+                }
+              : conv
+          )
+        );
+
+        // Only save message to database if conversationId is not provided (no active conversation)
+        // When conversationId is provided, the API already handles saving to avoid duplicates
+        if (!conversationId && targetConversationId) {
+          saveMessageToDatabase(targetConversationId, role, content).catch(error => {
+            console.error('Failed to save message to database:', error);
+          });
+        }
+      }
+
+      return newMessage;
+    },
+    [currentConversationId, currentMode, saveMessageToDatabase]
+  );
 
   // Add message to UI only (don't save to database)
-  const addMessageToUIOnly = useCallback((content: string, role: 'user' | 'assistant', conversationId?: string) => {
-    const newMessage: Message = {
-      id: generateId(),
-      role,
-      content,
-      timestamp: new Date(),
-      mode: currentMode,
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
-    
-    // Use the provided conversationId or fall back to currentConversationId
-    const targetConversationId = conversationId || currentConversationId;
-    
-    // Update message count for current conversation but don't save to database
-    if (targetConversationId) {
-      setConversations(prev => 
-        prev.map(conv => 
-          conv.id === targetConversationId 
-            ? { 
-                ...conv, 
-                messageCount: conv.messageCount + 1,
-                lastMessage: content.length > 50 ? content.substring(0, 50) + '...' : content,
-                timestamp: new Date()
-              }
-            : conv
-        )
-      );
-    }
-    
-    return newMessage;
-  }, [currentConversationId, currentMode]);
+  const addMessageToUIOnly = useCallback(
+    (content: string, role: 'user' | 'assistant', conversationId?: string) => {
+      const newMessage: Message = {
+        id: generateId(),
+        role,
+        content,
+        timestamp: new Date(),
+        mode: currentMode,
+      };
+
+      setMessages(prev => [...prev, newMessage]);
+
+      // Use the provided conversationId or fall back to currentConversationId
+      const targetConversationId = conversationId || currentConversationId;
+
+      // Update message count for current conversation but don't save to database
+      if (targetConversationId) {
+        setConversations(prev =>
+          prev.map(conv =>
+            conv.id === targetConversationId
+              ? {
+                  ...conv,
+                  messageCount: conv.messageCount + 1,
+                  lastMessage: content.length > 50 ? content.substring(0, 50) + '...' : content,
+                  timestamp: new Date(),
+                }
+              : conv
+          )
+        );
+      }
+
+      return newMessage;
+    },
+    [currentConversationId, currentMode]
+  );
 
   const generateConversationTitle = (content: string): string => {
     // Extract first meaningful part of the message for title
@@ -304,7 +319,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     if (cleanContent.length <= 50) {
       return cleanContent;
     }
-    
+
     // Try to find a good break point
     const words = cleanContent.split(' ');
     let title = '';
@@ -312,174 +327,201 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       if ((title + word).length > 50) break;
       title += (title ? ' ' : '') + word;
     }
-    
+
     return title + '...';
   };
 
   // Real conversation management functions
-  const loadUserConversations = useCallback(async (userId?: string) => {
-    if (!userId || !user?.id) return;
-    
-    try {
-      const response = await fetch('/api/conversations', {
-        headers: getAuthHeaders(),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setConversations(data.conversations || []);
-      }
-    } catch (error) {
-      console.error('Failed to load conversations:', error);
-    }
-  }, [getAuthHeaders, user?.id]);
+  const loadUserConversations = useCallback(
+    async (userId?: string) => {
+      if (!userId || !user?.id) return;
 
-  const createNewConversation = useCallback(async (title?: string, clearUI = true) => {
-    try {
-      // Only clear current state if explicitly requested (for manual "New Chat" button)
-      if (clearUI) {
-        setMessages([]);
-        setPendingTickets([]);
-        setCurrentConversationId(null);
+      try {
+        const response = await fetch('/api/conversations', {
+          headers: getAuthHeaders(),
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setConversations(data.conversations || []);
+        }
+      } catch (error) {
+        console.error('Failed to load conversations:', error);
       }
-      
-      if (!title) {
-        // Just clear the UI, don't create DB entry yet
+    },
+    [getAuthHeaders, user?.id]
+  );
+
+  const createNewConversation = useCallback(
+    async (title?: string, clearUI = true) => {
+      try {
+        // Only clear current state if explicitly requested (for manual "New Chat" button)
         if (clearUI) {
           setMessages([]);
           setPendingTickets([]);
           setCurrentConversationId(null);
         }
-        return { id: null };
-      }
 
-      // Get current user ID - this should be passed from parent component
-      const userId = typeof window !== 'undefined' ? 
-        JSON.parse(localStorage.getItem('currentUser') || '{}').id : null;
-      
-      if (!userId) {
-        throw new Error('User not authenticated');
-      }
-
-      const response = await fetch('/api/conversations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId,
-          title,
-          mode: currentMode,
-          provider: currentProvider,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const newConversation = data.conversation;
-        
-        setCurrentConversationId(newConversation.id);
-        setConversations(prev => [newConversation, ...prev]);
-        
-        return newConversation;
-      } else {
-        throw new Error('Failed to create conversation');
-      }
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
-      throw error;
-    }
-  }, [currentMode, currentProvider]);
-
-  const sendMessage = useCallback(async (content: string): Promise<string | null> => {
-    if (!content.trim() || isLoading) return null;
-
-    setIsLoading(true);
-    setPendingTickets([]);
-
-    // Declare conversationId outside try block so it's accessible in catch
-    let conversationId = currentConversationId;
-
-    try {
-      // If no current conversation, create one first
-      if (!conversationId) {
-        const title = generateConversationTitle(content);
-        const newConv = await createNewConversation(title, false); // Don't clear UI
-        conversationId = newConv?.id;
-        
-        // Set the conversation ID immediately so the message count updates work
-        setCurrentConversationId(conversationId);
-      }
-
-      // Only proceed if we have a valid conversation ID
-      if (!conversationId) {
-        throw new Error('Failed to create or get conversation ID');
-      }
-
-      // Add user message after conversation is created
-      addMessage(content, 'user', conversationId);
-
-      // Add minimum delay to ensure loading indicator is visible
-      const apiCallPromise = fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: content,
-          mode: currentMode,
-          provider: currentProvider,
-          config: providerConfigs[currentProvider],
-          conversationHistory: messages.slice(-10), // Last 10 messages for context: Increase this number to increase context if needed
-          conversationId, // Include conversation ID for database storage
-        }),
-      });
-
-      const delayPromise = new Promise(resolve => setTimeout(resolve, 800)); // Minimum 800ms delay
-
-      // Wait for both API call and minimum delay
-      const [response] = await Promise.all([apiCallPromise, delayPromise]);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.error || 'Unknown error'}`);
-      }
-
-      const aiResponse: AIResponse = await response.json();
-
-      if (aiResponse.type === 'assistant') {
-        addMessage(aiResponse.content, 'assistant', conversationId);
-      } else if (aiResponse.type === 'tickets') {
-        // Handle ticket response
-        setPendingTickets(aiResponse.tickets);
-        
-        let responseContent = `I've analyzed your requirements and created ${aiResponse.tickets.length} ticket(s). `;
-        responseContent += aiResponse.reasoning;
-        
-        if (aiResponse.needsClarification && aiResponse.clarificationQuestions) {
-          responseContent += '\n\nI have some questions to better understand your requirements:\n';
-          responseContent += aiResponse.clarificationQuestions.map(q => `• ${q}`).join('\n');
+        if (!title) {
+          // Just clear the UI, don't create DB entry yet
+          if (clearUI) {
+            setMessages([]);
+            setPendingTickets([]);
+            setCurrentConversationId(null);
+          }
+          return { id: null };
         }
-        
-        // Add message to UI but don't save to database (API already saved it with metadata)
-        addMessageToUIOnly(responseContent, 'assistant', conversationId);
-      }
 
-      // Return the conversation ID for navigation
-      return conversationId;
+        // Get current user ID - this should be passed from parent component
+        const userId =
+          typeof window !== 'undefined'
+            ? JSON.parse(localStorage.getItem('currentUser') || '{}').id
+            : null;
 
-    } catch (error) {
-      console.error('Error sending message:', error);
-      // Only add error message if we have a valid conversation ID
-      if (conversationId) {
-        addMessage('I apologize, but I encountered an error. Please try again.', 'assistant', conversationId);
-      } else {
-        addMessage('I apologize, but I encountered an error. Please try again.', 'assistant');
+        if (!userId) {
+          throw new Error('User not authenticated');
+        }
+
+        const response = await fetch('/api/conversations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId,
+            title,
+            mode: currentMode,
+            provider: currentProvider,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const newConversation = data.conversation;
+
+          setCurrentConversationId(newConversation.id);
+          setConversations(prev => [newConversation, ...prev]);
+
+          return newConversation;
+        } else {
+          throw new Error('Failed to create conversation');
+        }
+      } catch (error) {
+        console.error('Failed to create conversation:', error);
+        throw error;
       }
-      return conversationId; // Return the ID even on error if we have one
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isLoading, currentConversationId, currentMode, currentProvider, providerConfigs, messages, createNewConversation, addMessage, addMessageToUIOnly]);
+    },
+    [currentMode, currentProvider]
+  );
+
+  const sendMessage = useCallback(
+    async (content: string): Promise<string | null> => {
+      if (!content.trim() || isLoading) return null;
+
+      setIsLoading(true);
+      setPendingTickets([]);
+
+      // Declare conversationId outside try block so it's accessible in catch
+      let conversationId = currentConversationId;
+
+      try {
+        // If no current conversation, create one first
+        if (!conversationId) {
+          const title = generateConversationTitle(content);
+          const newConv = await createNewConversation(title, false); // Don't clear UI
+          conversationId = newConv?.id;
+
+          // Set the conversation ID immediately so the message count updates work
+          setCurrentConversationId(conversationId);
+        }
+
+        // Only proceed if we have a valid conversation ID
+        if (!conversationId) {
+          throw new Error('Failed to create or get conversation ID');
+        }
+
+        // Add user message after conversation is created
+        addMessage(content, 'user', conversationId);
+
+        // Add minimum delay to ensure loading indicator is visible
+        const apiCallPromise = fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: content,
+            mode: currentMode,
+            provider: currentProvider,
+            config: providerConfigs[currentProvider],
+            conversationHistory: messages.slice(-10), // Last 10 messages for context: Increase this number to increase context if needed
+            conversationId, // Include conversation ID for database storage
+          }),
+        });
+
+        const delayPromise = new Promise(resolve => setTimeout(resolve, 800)); // Minimum 800ms delay
+
+        // Wait for both API call and minimum delay
+        const [response] = await Promise.all([apiCallPromise, delayPromise]);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            `HTTP error! status: ${response.status}, message: ${errorData.error || 'Unknown error'}`
+          );
+        }
+
+        const aiResponse: AIResponse = await response.json();
+
+        if (aiResponse.type === 'assistant') {
+          addMessage(aiResponse.content, 'assistant', conversationId);
+        } else if (aiResponse.type === 'tickets') {
+          // Handle ticket response
+          setPendingTickets(aiResponse.tickets);
+
+          let responseContent = `I've analyzed your requirements and created ${aiResponse.tickets.length} ticket(s). `;
+          responseContent += aiResponse.reasoning;
+
+          if (aiResponse.needsClarification && aiResponse.clarificationQuestions) {
+            responseContent +=
+              '\n\nI have some questions to better understand your requirements:\n';
+            responseContent += aiResponse.clarificationQuestions.map(q => `• ${q}`).join('\n');
+          }
+
+          // Add message to UI but don't save to database (API already saved it with metadata)
+          addMessageToUIOnly(responseContent, 'assistant', conversationId);
+        }
+
+        // Return the conversation ID for navigation
+        return conversationId;
+      } catch (error) {
+        console.error('Error sending message:', error);
+        // Only add error message if we have a valid conversation ID
+        if (conversationId) {
+          addMessage(
+            'I apologize, but I encountered an error. Please try again.',
+            'assistant',
+            conversationId
+          );
+        } else {
+          addMessage('I apologize, but I encountered an error. Please try again.', 'assistant');
+        }
+        return conversationId; // Return the ID even on error if we have one
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [
+      isLoading,
+      currentConversationId,
+      currentMode,
+      currentProvider,
+      providerConfigs,
+      messages,
+      createNewConversation,
+      addMessage,
+      addMessageToUIOnly,
+    ]
+  );
 
   const setMode = (mode: ChatMode) => {
     setCurrentMode(mode);
@@ -522,14 +564,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       setShowProjectSelection(false);
-      
+
       // Call GitLab API to create issues
       const response = await fetch('/api/gitlab/create-issues', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           tickets,
           projectSelection,
           gitlabConfig,
@@ -542,27 +584,26 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       }
 
       const result = await response.json();
-      
+
       // Build success message
       let message = `✅ ${result.message}`;
-      
+
       if (result.issues && result.issues.length > 0) {
         message += '\n\n**Created Issues:**\n';
         result.issues.forEach((issue: { issueNumber: number; url: string; title: string }) => {
           message += `• [#${issue.issueNumber}](${issue.url}) - ${issue.title}\n`;
         });
       }
-      
+
       if (result.errors && result.errors.length > 0) {
         message += '\n\n**Failed to create:**\n';
         result.errors.forEach((error: { title: string; error: string }) => {
           message += `• ${error.title}: ${error.error}\n`;
         });
       }
-      
+
       addMessage(message, 'assistant');
       setPendingTickets([]);
-      
     } catch (error) {
       console.error('Error creating GitLab issues:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
@@ -578,174 +619,191 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   };
 
   const editTicket = (ticketId: string, updates: Partial<Ticket>) => {
-    setPendingTickets(prev => 
-      prev.map(ticket => 
-        ticket.id === ticketId 
-          ? { ...ticket, ...updates }
-          : ticket
-      )
+    setPendingTickets(prev =>
+      prev.map(ticket => (ticket.id === ticketId ? { ...ticket, ...updates } : ticket))
     );
   };
 
   const updateProviderConfig = (provider: LLMProvider, config: Partial<LLMConfig>) => {
     setProviderConfigs(prev => ({
       ...prev,
-      [provider]: { ...prev[provider], ...config }
+      [provider]: { ...prev[provider], ...config },
     }));
   };
 
   // Add a function to load conversations from parent component
-  const loadConversationsForUser = useCallback((userId: string) => {
-    loadUserConversations(userId);
-  }, [loadUserConversations]);
+  const loadConversationsForUser = useCallback(
+    (userId: string) => {
+      loadUserConversations(userId);
+    },
+    [loadUserConversations]
+  );
 
-  const loadConversation = useCallback(async (conversationId: string) => {
-    try {
-      setIsLoading(true);
-      
-      const response = await fetch(`/api/conversations/${conversationId}`, {
-        headers: getAuthHeaders(),
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Load conversation messages
-        setMessages(data.messages || []);
-        setCurrentConversationId(conversationId);
-        
-        // Update current mode/provider based on conversation
-        setCurrentMode(data.conversation.mode);
-        setCurrentProvider(data.conversation.provider);
-        
-        setPendingTickets([]); // Clear any pending tickets
-      } else if (response.status === 404 || response.status === 401) {
-        // Conversation not found or unauthorized - don't show error message
-        console.log('Conversation not found or unauthorized:', conversationId, response.status);
-        // Clear current state silently
-        setMessages([]);
-        setCurrentConversationId(null);
-        setPendingTickets([]);
-        // Throw a special error that the component can handle
-        throw new Error('CONVERSATION_NOT_FOUND');
-      } else {
-        // For other errors (500, etc.), also treat as not found
-        console.log('Error loading conversation (treating as not found):', response.status, conversationId);
-        setMessages([]);
-        setCurrentConversationId(null);
-        setPendingTickets([]);
-        throw new Error('CONVERSATION_NOT_FOUND');
-      }
-    } catch (error) {
-      console.error('Failed to load conversation:', error);
-      
-      // If it's already our special error, re-throw it
-      if (error instanceof Error && error.message === 'CONVERSATION_NOT_FOUND') {
-        throw error;
-      }
-      
-      // For network errors or other issues, also treat as not found
-      console.log('Network or other error loading conversation (treating as not found):', conversationId);
-      setMessages([]);
-      setCurrentConversationId(null);
-      setPendingTickets([]);
-      throw new Error('CONVERSATION_NOT_FOUND');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [getAuthHeaders]);
+  const loadConversation = useCallback(
+    async (conversationId: string) => {
+      try {
+        setIsLoading(true);
 
-  const deleteConversation = useCallback(async (conversationId: string) => {
-    try {
-      const response = await fetch(`/api/conversations/${conversationId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
+        const response = await fetch(`/api/conversations/${conversationId}`, {
+          headers: getAuthHeaders(),
+        });
 
-      if (response.ok) {
-        // Remove from local state
-        setConversations(prev => prev.filter(conv => conv.id !== conversationId));
-        
-        // If this was the current conversation, clear it
-        if (currentConversationId === conversationId) {
+        if (response.ok) {
+          const data = await response.json();
+
+          // Load conversation messages
+          setMessages(data.messages || []);
+          setCurrentConversationId(conversationId);
+
+          // Update current mode/provider based on conversation
+          setCurrentMode(data.conversation.mode);
+          setCurrentProvider(data.conversation.provider);
+
+          setPendingTickets([]); // Clear any pending tickets
+        } else if (response.status === 404 || response.status === 401) {
+          // Conversation not found or unauthorized - don't show error message
+          console.log('Conversation not found or unauthorized:', conversationId, response.status);
+          // Clear current state silently
           setMessages([]);
           setCurrentConversationId(null);
           setPendingTickets([]);
+          // Throw a special error that the component can handle
+          throw new Error('CONVERSATION_NOT_FOUND');
+        } else {
+          // For other errors (500, etc.), also treat as not found
+          console.log(
+            'Error loading conversation (treating as not found):',
+            response.status,
+            conversationId
+          );
+          setMessages([]);
+          setCurrentConversationId(null);
+          setPendingTickets([]);
+          throw new Error('CONVERSATION_NOT_FOUND');
         }
-      } else {
-        throw new Error('Failed to delete conversation');
-      }
-    } catch (error) {
-      console.error('Failed to delete conversation:', error);
-      throw error;
-    }
-  }, [currentConversationId, getAuthHeaders]);
+      } catch (error) {
+        console.error('Failed to load conversation:', error);
 
-  const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
-    try {
-      const response = await fetch(`/api/conversations/${conversationId}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ title }),
-      });
+        // If it's already our special error, re-throw it
+        if (error instanceof Error && error.message === 'CONVERSATION_NOT_FOUND') {
+          throw error;
+        }
 
-      if (response.ok) {
-        // Update local state
-        setConversations(prev => 
-          prev.map(conv => 
-            conv.id === conversationId 
-              ? { ...conv, title }
-              : conv
-          )
+        // For network errors or other issues, also treat as not found
+        console.log(
+          'Network or other error loading conversation (treating as not found):',
+          conversationId
         );
-      } else {
-        throw new Error('Failed to update conversation title');
+        setMessages([]);
+        setCurrentConversationId(null);
+        setPendingTickets([]);
+        throw new Error('CONVERSATION_NOT_FOUND');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to update conversation title:', error);
-      throw error;
-    }
-  }, [getAuthHeaders]);
+    },
+    [getAuthHeaders]
+  );
 
-  const createShareLink = useCallback(async (conversationId: string) => {
-    try {
-      const response = await fetch(`/api/conversations/${conversationId}/share`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
+  const deleteConversation = useCallback(
+    async (conversationId: string) => {
+      try {
+        const response = await fetch(`/api/conversations/${conversationId}`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        return {
-          shareId: data.shareId,
-          shareUrl: data.shareUrl,
-        };
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create share link');
+        if (response.ok) {
+          // Remove from local state
+          setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+
+          // If this was the current conversation, clear it
+          if (currentConversationId === conversationId) {
+            setMessages([]);
+            setCurrentConversationId(null);
+            setPendingTickets([]);
+          }
+        } else {
+          throw new Error('Failed to delete conversation');
+        }
+      } catch (error) {
+        console.error('Failed to delete conversation:', error);
+        throw error;
       }
-    } catch (error) {
-      console.error('Failed to create share link:', error);
-      throw error;
-    }
-  }, [getAuthHeaders]);
+    },
+    [currentConversationId, getAuthHeaders]
+  );
 
-  const removeShareLink = useCallback(async (conversationId: string) => {
-    try {
-      const response = await fetch(`/api/conversations/${conversationId}/share`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
+  const updateConversationTitle = useCallback(
+    async (conversationId: string, title: string) => {
+      try {
+        const response = await fetch(`/api/conversations/${conversationId}`, {
+          method: 'PATCH',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ title }),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to remove share link');
+        if (response.ok) {
+          // Update local state
+          setConversations(prev =>
+            prev.map(conv => (conv.id === conversationId ? { ...conv, title } : conv))
+          );
+        } else {
+          throw new Error('Failed to update conversation title');
+        }
+      } catch (error) {
+        console.error('Failed to update conversation title:', error);
+        throw error;
       }
-    } catch (error) {
-      console.error('Failed to remove share link:', error);
-      throw error;
-    }
-  }, [getAuthHeaders]);
+    },
+    [getAuthHeaders]
+  );
+
+  const createShareLink = useCallback(
+    async (conversationId: string) => {
+      try {
+        const response = await fetch(`/api/conversations/${conversationId}/share`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            shareId: data.shareId,
+            shareUrl: data.shareUrl,
+          };
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create share link');
+        }
+      } catch (error) {
+        console.error('Failed to create share link:', error);
+        throw error;
+      }
+    },
+    [getAuthHeaders]
+  );
+
+  const removeShareLink = useCallback(
+    async (conversationId: string) => {
+      try {
+        const response = await fetch(`/api/conversations/${conversationId}/share`, {
+          method: 'DELETE',
+          headers: getAuthHeaders(),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to remove share link');
+        }
+      } catch (error) {
+        console.error('Failed to remove share link:', error);
+        throw error;
+      }
+    },
+    [getAuthHeaders]
+  );
 
   const contextValue: ChatContextType = {
     // State
@@ -754,15 +812,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     currentProvider,
     isLoading,
     pendingTickets,
-    
+
     // Conversation Management
     conversations,
     currentConversationId,
-    
+
     // GitLab Integration
     gitlabConfig,
     showProjectSelection,
-    
+
     // Actions
     sendMessage,
     setMode,
@@ -773,42 +831,38 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     rejectTickets,
     editTicket,
     setPendingTickets,
-    
+
     // Conversation Actions
     createNewConversation,
     loadConversation,
     deleteConversation,
     updateConversationTitle,
     loadConversationsForUser,
-    
+
     // Share Actions
     createShareLink,
     removeShareLink,
-    
+
     // GitLab Actions
     setGitLabConfig: setGitlabConfig,
     createGitLabIssues,
     setShowProjectSelection,
-    
+
     // Configuration
     providerConfigs,
     updateProviderConfig,
   };
 
-  return (
-    <ChatContext.Provider value={contextValue}>
-      {children}
-    </ChatContext.Provider>
-  );
+  return <ChatContext.Provider value={contextValue}>{children}</ChatContext.Provider>;
 };
 
 // Custom hook to use chat context
 export const useChat = (): ChatContextType => {
   const context = useContext(ChatContext);
-  
+
   if (context === undefined) {
     throw new Error('useChat must be used within a ChatProvider');
   }
-  
+
   return context;
-}; 
+};

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,13 +33,14 @@ const LoginForm: React.FC = () => {
     }
   };
 
-  const handleChange = (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: e.target.value
-    }));
-    setError(''); // Clear error when user types
-  };
+  const handleChange =
+    (field: keyof typeof formData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFormData(prev => ({
+        ...prev,
+        [field]: e.target.value,
+      }));
+      setError(''); // Clear error when user types
+    };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -53,9 +54,7 @@ const LoginForm: React.FC = () => {
             </div>
           </div>
           <h1 className="text-3xl font-bold gradient-text mb-2">AI Ticket Automation</h1>
-          <p className="text-muted-foreground">
-            Sign in to create tickets and get AI assistance
-          </p>
+          <p className="text-muted-foreground">Sign in to create tickets and get AI assistance</p>
         </div>
 
         {/* Login Form */}
@@ -103,18 +102,18 @@ const LoginForm: React.FC = () => {
               type="submit"
               disabled={isLoading}
               className={cn(
-                "w-full h-12 text-base font-medium relative overflow-hidden",
-                "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500",
-                "hover:from-blue-600 hover:via-purple-600 hover:to-pink-600",
-                "transform transition-all duration-300 ease-out",
-                "hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/25",
-                "active:scale-[0.98] active:shadow-lg",
-                "before:absolute before:inset-0 before:bg-gradient-to-r",
-                "before:from-white/20 before:via-white/10 before:to-transparent",
-                "before:translate-x-[-100%] hover:before:translate-x-[100%]",
-                "before:transition-transform before:duration-700 before:ease-out",
-                "disabled:hover:scale-100 disabled:hover:shadow-none",
-                "disabled:opacity-70 disabled:cursor-not-allowed"
+                'w-full h-12 text-base font-medium relative overflow-hidden',
+                'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500',
+                'hover:from-blue-600 hover:via-purple-600 hover:to-pink-600',
+                'transform transition-all duration-300 ease-out',
+                'hover:scale-[1.02] hover:shadow-2xl hover:shadow-purple-500/25',
+                'active:scale-[0.98] active:shadow-lg',
+                'before:absolute before:inset-0 before:bg-gradient-to-r',
+                'before:from-white/20 before:via-white/10 before:to-transparent',
+                'before:translate-x-[-100%] hover:before:translate-x-[100%]',
+                'before:transition-transform before:duration-700 before:ease-out',
+                'disabled:hover:scale-100 disabled:hover:shadow-none',
+                'disabled:opacity-70 disabled:cursor-not-allowed'
               )}
             >
               {isLoading ? (
@@ -156,4 +155,4 @@ const LoginForm: React.FC = () => {
   );
 };
 
-export { LoginForm }; 
+export { LoginForm };

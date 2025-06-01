@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,10 +24,8 @@ function AppContent() {
   return (
     <main className="h-screen overflow-hidden">
       <ChatInterface onOpenSettings={() => setShowSettings(true)} />
-      
-      {showSettings && (
-        <SettingsPanel onClose={() => setShowSettings(false)} />
-      )}
+
+      {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
     </main>
   );
 }

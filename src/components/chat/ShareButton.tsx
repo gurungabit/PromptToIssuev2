@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 import { useChat } from '@/contexts/ChatContext';
@@ -13,11 +13,11 @@ interface ShareButtonProps {
   className?: string;
 }
 
-export const ShareButton: React.FC<ShareButtonProps> = ({ 
-  conversationId, 
+export const ShareButton: React.FC<ShareButtonProps> = ({
+  conversationId,
   size = 'sm',
   variant = 'ghost',
-  className 
+  className,
 }) => {
   const { createShareLink, removeShareLink } = useChat();
   const [isLoading, setIsLoading] = useState(false);
@@ -90,24 +90,24 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         onClick={handleShare}
         disabled={isLoading}
         className={cn(
-          "transition-all duration-200 cursor-pointer",
-          shareData ? "text-blue-500 hover:text-blue-600" : "",
+          'transition-all duration-200 cursor-pointer',
+          shareData ? 'text-blue-500 hover:text-blue-600' : '',
           className
         )}
-        title={shareData ? "Manage share link" : "Create share link"}
+        title={shareData ? 'Manage share link' : 'Create share link'}
       >
         <Share2 className="w-4 h-4" />
       </Button>
 
       {/* Share Modal */}
       {showShareModal && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[99999] cursor-pointer"
           onClick={handleCloseModal}
         >
-          <div 
+          <div
             className="bg-background border border-border rounded-2xl p-6 w-full max-w-md mx-4 shadow-2xl cursor-default"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold">Share Conversation</h3>
@@ -133,17 +133,17 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
                       value={shareData.shareUrl}
                       readOnly
                       className="flex-1 px-3 py-2 bg-muted border border-border rounded-lg text-sm cursor-text select-all"
-                      onClick={(e) => (e.target as HTMLInputElement).select()}
+                      onClick={e => (e.target as HTMLInputElement).select()}
                     />
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={handleCopyLink}
                       className={cn(
-                        "px-3 cursor-pointer transition-all duration-200 hover:bg-accent hover:scale-105",
-                        copied ? "bg-green-100 border-green-300 text-green-700" : ""
+                        'px-3 cursor-pointer transition-all duration-200 hover:bg-accent hover:scale-105',
+                        copied ? 'bg-green-100 border-green-300 text-green-700' : ''
                       )}
-                      title={copied ? "Copied!" : "Copy to clipboard"}
+                      title={copied ? 'Copied!' : 'Copy to clipboard'}
                     >
                       {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
@@ -176,7 +176,8 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
 
                 <div className="bg-muted/50 rounded-lg p-3 border border-border/50">
                   <p className="text-xs text-muted-foreground">
-                    🔗 Anyone with this link can view this conversation. Remove the share link to revoke access.
+                    🔗 Anyone with this link can view this conversation. Remove the share link to
+                    revoke access.
                   </p>
                 </div>
               </div>
@@ -186,4 +187,4 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       )}
     </>
   );
-}; 
+};

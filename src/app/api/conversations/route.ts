@@ -20,10 +20,7 @@ export async function GET(request: NextRequest) {
     // Get user ID from headers for authentication
     const userId = getUserIdFromRequest(request);
     if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Note: We ignore the userId query parameter and use the authenticated user ID
@@ -71,13 +68,9 @@ export async function GET(request: NextRequest) {
       success: true,
       conversations: transformedConversations,
     });
-
   } catch (error) {
     console.error('Error fetching conversations:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -86,10 +79,7 @@ export async function POST(request: NextRequest) {
     const { userId, title, mode, provider } = await request.json();
 
     if (!userId || !title || !mode || !provider) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const [newConversation] = await db
@@ -116,12 +106,8 @@ export async function POST(request: NextRequest) {
         isArchived: false,
       },
     });
-
   } catch (error) {
     console.error('Error creating conversation:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

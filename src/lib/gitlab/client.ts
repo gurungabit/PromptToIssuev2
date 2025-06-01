@@ -1,9 +1,9 @@
-import type { 
-  GitLabProject, 
-  GitLabMilestone, 
-  GitLabGroup, 
+import type {
+  GitLabProject,
+  GitLabMilestone,
+  GitLabGroup,
   GitLabConfig,
-  GitLabIssueCreate
+  GitLabIssueCreate,
 } from '@/lib/schemas';
 
 interface GitLabApiResponse<T> {
@@ -36,13 +36,16 @@ class GitLabClient {
     this.accessToken = config.accessToken;
   }
 
-  private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<GitLabApiResponse<T>> {
+  private async makeRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<GitLabApiResponse<T>> {
     const url = `${this.baseUrl}/api/v4${endpoint}`;
-    
+
     const response = await fetch(url, {
       ...options,
       headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
+        Authorization: `Bearer ${this.accessToken}`,
         'Content-Type': 'application/json',
         ...options.headers,
       },
@@ -54,7 +57,7 @@ class GitLabClient {
     }
 
     const data = await response.json();
-    
+
     // Extract pagination info from headers
     const pagination = this.extractPagination(response.headers);
 
@@ -128,7 +131,9 @@ class GitLabClient {
       const groupPath = pathParts.slice(0, i).join('/');
       if (groupPath) {
         try {
-          const response = await this.makeRequest<GitLabGroup>(`/groups/${encodeURIComponent(groupPath)}`);
+          const response = await this.makeRequest<GitLabGroup>(
+            `/groups/${encodeURIComponent(groupPath)}`
+          );
           groups.push(response.data);
         } catch (error) {
           console.warn(`Could not fetch group: ${groupPath}`, error);
@@ -146,17 +151,17 @@ class GitLabClient {
       const cacheKey = project.path_with_namespace;
 
       // Check cache first
-      if (this.milestoneCache[cacheKey] && 
-          Date.now() - this.milestoneCache[cacheKey].timestamp < this.CACHE_TTL) {
+      if (
+        this.milestoneCache[cacheKey] &&
+        Date.now() - this.milestoneCache[cacheKey].timestamp < this.CACHE_TTL
+      ) {
         let milestones = this.milestoneCache[cacheKey].milestones;
-        
+
         // Apply search filter if provided
         if (search) {
-          milestones = milestones.filter(m => 
-            m.title.toLowerCase().includes(search.toLowerCase())
-          );
+          milestones = milestones.filter(m => m.title.toLowerCase().includes(search.toLowerCase()));
         }
-        
+
         return milestones;
       }
 
@@ -175,9 +180,7 @@ class GitLabClient {
 
       // Remove duplicates and sort by title
       const uniqueMilestones = allMilestones
-        .filter((milestone, index, self) => 
-          index === self.findIndex(m => m.id === milestone.id)
-        )
+        .filter((milestone, index, self) => index === self.findIndex(m => m.id === milestone.id))
         .sort((a, b) => a.title.localeCompare(b.title));
 
       // Cache the results
@@ -189,9 +192,7 @@ class GitLabClient {
 
       // Apply search filter
       if (search) {
-        return uniqueMilestones.filter(m => 
-          m.title.toLowerCase().includes(search.toLowerCase())
-        );
+        return uniqueMilestones.filter(m => m.title.toLowerCase().includes(search.toLowerCase()));
       }
 
       return uniqueMilestones;
@@ -215,32 +216,38 @@ class GitLabClient {
       });
 
       try {
-        const response = await this.makeRequest<GitLabMilestone[]>(`/projects/${projectId}/milestones?${params}`);
-        milestones.push(...response.data.map((milestone: {
-          id: number;
-          title: string;
-          description: string | null;
-          state: 'active' | 'closed';
-          created_at: string;
-          updated_at: string;
-          due_date: string | null;
-          start_date: string | null;
-          web_url: string;
-          project_id?: number;
-          group_id?: number;
-        }) => ({
-          id: milestone.id,
-          title: milestone.title,
-          description: milestone.description,
-          state: milestone.state,
-          created_at: milestone.created_at,
-          updated_at: milestone.updated_at,
-          due_date: milestone.due_date,
-          start_date: milestone.start_date,
-          web_url: milestone.web_url,
-          project_id: milestone.project_id,
-          group_id: milestone.group_id,
-        })));
+        const response = await this.makeRequest<GitLabMilestone[]>(
+          `/projects/${projectId}/milestones?${params}`
+        );
+        milestones.push(
+          ...response.data.map(
+            (milestone: {
+              id: number;
+              title: string;
+              description: string | null;
+              state: 'active' | 'closed';
+              created_at: string;
+              updated_at: string;
+              due_date: string | null;
+              start_date: string | null;
+              web_url: string;
+              project_id?: number;
+              group_id?: number;
+            }) => ({
+              id: milestone.id,
+              title: milestone.title,
+              description: milestone.description,
+              state: milestone.state,
+              created_at: milestone.created_at,
+              updated_at: milestone.updated_at,
+              due_date: milestone.due_date,
+              start_date: milestone.start_date,
+              web_url: milestone.web_url,
+              project_id: milestone.project_id,
+              group_id: milestone.group_id,
+            })
+          )
+        );
 
         if (!response.pagination || page >= response.pagination.totalPages) {
           break;
@@ -269,32 +276,38 @@ class GitLabClient {
       });
 
       try {
-        const response = await this.makeRequest<GitLabMilestone[]>(`/groups/${groupId}/milestones?${params}`);
-        milestones.push(...response.data.map((milestone: {
-          id: number;
-          title: string;
-          description: string | null;
-          state: 'active' | 'closed';
-          created_at: string;
-          updated_at: string;
-          due_date: string | null;
-          start_date: string | null;
-          web_url: string;
-          project_id?: number;
-          group_id?: number;
-        }) => ({
-          id: milestone.id,
-          title: milestone.title,
-          description: milestone.description,
-          state: milestone.state,
-          created_at: milestone.created_at,
-          updated_at: milestone.updated_at,
-          due_date: milestone.due_date,
-          start_date: milestone.start_date,
-          web_url: milestone.web_url,
-          project_id: milestone.project_id,
-          group_id: milestone.group_id,
-        })));
+        const response = await this.makeRequest<GitLabMilestone[]>(
+          `/groups/${groupId}/milestones?${params}`
+        );
+        milestones.push(
+          ...response.data.map(
+            (milestone: {
+              id: number;
+              title: string;
+              description: string | null;
+              state: 'active' | 'closed';
+              created_at: string;
+              updated_at: string;
+              due_date: string | null;
+              start_date: string | null;
+              web_url: string;
+              project_id?: number;
+              group_id?: number;
+            }) => ({
+              id: milestone.id,
+              title: milestone.title,
+              description: milestone.description,
+              state: milestone.state,
+              created_at: milestone.created_at,
+              updated_at: milestone.updated_at,
+              due_date: milestone.due_date,
+              start_date: milestone.start_date,
+              web_url: milestone.web_url,
+              project_id: milestone.project_id,
+              group_id: milestone.group_id,
+            })
+          )
+        );
 
         if (!response.pagination || page >= response.pagination.totalPages) {
           break;
@@ -342,4 +355,4 @@ class GitLabClient {
 }
 
 export { GitLabClient };
-export type { GitLabApiResponse, MilestoneCache }; 
+export type { GitLabApiResponse, MilestoneCache };

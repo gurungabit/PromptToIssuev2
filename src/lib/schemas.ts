@@ -1,15 +1,15 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Chat Mode Types
-export const ChatModeSchema = z.enum(["ticket", "assistant"]);
+export const ChatModeSchema = z.enum(['ticket', 'assistant']);
 export type ChatMode = z.infer<typeof ChatModeSchema>;
 
 // LLM Provider Types
-export const LLMProviderSchema = z.enum(["openai", "anthropic", "google", "ollama"]);
+export const LLMProviderSchema = z.enum(['openai', 'anthropic', 'google', 'ollama']);
 export type LLMProvider = z.infer<typeof LLMProviderSchema>;
 
 // Message Types
-export const MessageRoleSchema = z.enum(["user", "assistant", "system"]);
+export const MessageRoleSchema = z.enum(['user', 'assistant', 'system']);
 export type MessageRole = z.infer<typeof MessageRoleSchema>;
 
 export const MessageSchema = z.object({
@@ -44,22 +44,22 @@ export const TicketSchema = z.object({
   acceptanceCriteria: z.array(AcceptanceCriteriaSchema),
   tasks: z.array(TaskSchema),
   labels: z.array(z.string()),
-  priority: z.enum(["low", "medium", "high", "critical"]).default("medium"),
+  priority: z.enum(['low', 'medium', 'high', 'critical']).default('medium'),
   estimatedHours: z.number().optional(),
-  type: z.enum(["feature", "bug", "task", "improvement", "epic"]).default("feature"),
+  type: z.enum(['feature', 'bug', 'task', 'improvement', 'epic']).default('feature'),
 });
 export type Ticket = z.infer<typeof TicketSchema>;
 
 // AI Response Schemas
 export const AssistantResponseSchema = z.object({
-  type: z.literal("assistant"),
+  type: z.literal('assistant'),
   content: z.string(),
   suggestions: z.array(z.string()).optional(),
 });
 export type AssistantResponse = z.infer<typeof AssistantResponseSchema>;
 
 export const TicketResponseSchema = z.object({
-  type: z.literal("tickets"),
+  type: z.literal('tickets'),
   tickets: z.array(TicketSchema),
   reasoning: z.string(),
   needsClarification: z.boolean().default(false),
@@ -72,7 +72,7 @@ export type AIResponse = z.infer<typeof AIResponseSchema>;
 
 // Platform Integration Schemas
 export const PlatformConfigSchema = z.object({
-  type: z.enum(["github", "gitlab"]),
+  type: z.enum(['github', 'gitlab']),
   token: z.string(),
   owner: z.string(),
   repository: z.string(),
@@ -108,8 +108,8 @@ export type LLMConfig = z.infer<typeof LLMConfigSchema>;
 
 // User Preferences Schema
 export const UserPreferencesSchema = z.object({
-  defaultProvider: LLMProviderSchema.default("openai"),
-  defaultMode: ChatModeSchema.default("ticket"),
+  defaultProvider: LLMProviderSchema.default('openai'),
+  defaultMode: ChatModeSchema.default('ticket'),
   platforms: z.array(PlatformConfigSchema).default([]),
   llmConfigs: z.array(LLMConfigSchema).default([]),
   ticketTemplate: TicketSchema.partial().optional(),
@@ -185,4 +185,4 @@ export type GitLabMilestone = z.infer<typeof GitLabMilestoneSchema>;
 export type GitLabGroup = z.infer<typeof GitLabGroupSchema>;
 export type GitLabConfig = z.infer<typeof GitLabConfigSchema>;
 export type GitLabIssueCreate = z.infer<typeof GitLabIssueCreateSchema>;
-export type ProjectSelection = z.infer<typeof ProjectSelectionSchema>; 
+export type ProjectSelection = z.infer<typeof ProjectSelectionSchema>;

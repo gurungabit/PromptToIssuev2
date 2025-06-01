@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -6,16 +6,16 @@ import { useChat } from '@/contexts/ChatContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { ShareButton } from '@/components/chat/ShareButton';
-import { 
-  Plus, 
-  Search, 
+import {
+  Plus,
+  Search,
   Edit3,
   Trash2,
   PanelLeftClose,
   PanelLeftOpen,
   Check,
   X,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 
 interface ConversationSidebarProps {
@@ -23,23 +23,20 @@ interface ConversationSidebarProps {
   onToggle: () => void;
 }
 
-const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
-  isCollapsed,
-  onToggle
-}) => {
+const ConversationSidebar: React.FC<ConversationSidebarProps> = ({ isCollapsed, onToggle }) => {
   const router = useRouter();
   const pathname = usePathname();
-  
-  const { 
-    conversations, 
+
+  const {
+    conversations,
     currentMode,
     deleteConversation,
     updateConversationTitle,
-    loadConversationsForUser
+    loadConversationsForUser,
   } = useChat();
-  
+
   const { user } = useAuth();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -61,7 +58,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     const now = new Date();
     const diffInHours = (now.getTime() - dateObj.getTime()) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 24) {
       return 'Today';
     } else if (diffInHours < 48) {
@@ -115,10 +112,10 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
       try {
         // Check if we're deleting the currently viewed conversation
         const isCurrentConversation = pathname === `/conversation/${deleteConfirm.id}`;
-        
+
         await deleteConversation(deleteConfirm.id);
         setDeleteConfirm(null);
-        
+
         // If we deleted the current conversation, navigate to home
         if (isCurrentConversation) {
           router.push('/');
@@ -144,7 +141,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
         >
           <PanelLeftOpen className="w-5 h-5" />
         </Button>
-        
+
         <Button
           variant="ghost"
           size="icon"
@@ -174,7 +171,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 <PanelLeftClose className="w-4 h-4" />
               </Button>
             </div>
-            
+
             <Button
               onClick={startNewConversation}
               className="w-full bg-muted hover:opacity-80 text-chat-sidebar-foreground border-0 rounded-2xl py-3 transition-all duration-200 hover:scale-[1.02] btn-hover cursor-pointer hover:scale-110"
@@ -193,7 +190,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 type="text"
                 placeholder="Search conversations..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-muted border border-border rounded-2xl text-chat-sidebar-foreground placeholder-chat-sidebar-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all duration-200"
               />
             </div>
@@ -205,19 +202,23 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
               {filteredConversations.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-chat-sidebar-foreground/60 text-sm">No conversations yet</p>
-                  <p className="text-chat-sidebar-foreground/40 text-xs mt-1">Start chatting to see your conversations here</p>
+                  <p className="text-chat-sidebar-foreground/40 text-xs mt-1">
+                    Start chatting to see your conversations here
+                  </p>
                 </div>
               ) : (
-                filteredConversations.map((conversation) => (
+                filteredConversations.map(conversation => (
                   <div
                     key={conversation.id}
                     className="group relative"
                     onMouseEnter={() => setHoveredId(conversation.id)}
                     onMouseLeave={() => setHoveredId(null)}
                   >
-                    <button 
+                    <button
                       className={`conversation-item w-full text-left p-4 pr-16 hover:bg-muted transition-all rounded-2xl ${
-                        pathname === `/conversation/${conversation.id}` ? 'bg-muted border border-primary/30' : ''
+                        pathname === `/conversation/${conversation.id}`
+                          ? 'bg-muted border border-primary/30'
+                          : ''
                       }`}
                       onClick={() => handleConversationClick(conversation.id)}
                       disabled={editingId === conversation.id}
@@ -230,15 +231,15 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                             ) : (
                               <div className="w-2.5 h-2.5 rounded-full bg-green-400 flex-shrink-0" />
                             )}
-                            
+
                             {editingId === conversation.id ? (
                               <input
                                 type="text"
                                 value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
+                                onChange={e => setEditTitle(e.target.value)}
                                 className="text-sm font-medium text-chat-sidebar-foreground bg-transparent border-b border-primary/40 focus:outline-none flex-1"
                                 autoFocus
-                                onKeyDown={(e) => {
+                                onKeyDown={e => {
                                   if (e.key === 'Enter') handleEditSave();
                                   if (e.key === 'Escape') handleEditCancel();
                                 }}
@@ -249,7 +250,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                               </span>
                             )}
                           </div>
-                          
+
                           {editingId !== conversation.id && (
                             <>
                               <p className="text-xs text-chat-sidebar-foreground/60 truncate mb-3">
@@ -268,7 +269,7 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                         </div>
                       </div>
                     </button>
-                    
+
                     {/* Edit Mode Actions */}
                     {editingId === conversation.id ? (
                       <div className="absolute right-2 top-2 flex gap-1 opacity-100 transition-opacity">
@@ -349,12 +350,13 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
                 <p className="text-sm text-muted-foreground">This action cannot be undone</p>
               </div>
             </div>
-            
+
             <p className="text-foreground mb-6 bg-muted/30 p-4 rounded-lg border border-border/50">
-              Are you sure you want to delete &quot;<span className="font-medium text-primary">{deleteConfirm.title}</span>&quot;? 
-              All messages in this conversation will be permanently removed.
+              Are you sure you want to delete &quot;
+              <span className="font-medium text-primary">{deleteConfirm.title}</span>&quot;? All
+              messages in this conversation will be permanently removed.
             </p>
-            
+
             <div className="flex gap-3 justify-end">
               <Button
                 variant="outline"
@@ -377,4 +379,4 @@ const ConversationSidebar: React.FC<ConversationSidebarProps> = ({
   );
 };
 
-export { ConversationSidebar }; 
+export { ConversationSidebar };

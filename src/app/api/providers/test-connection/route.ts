@@ -26,14 +26,10 @@ export async function POST(request: NextRequest) {
       success: result.success,
       error: result.error,
     });
-
   } catch (error) {
     console.error('Test connection error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
-    return NextResponse.json(
-      { success: false, error: errorMessage },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ success: false, error: errorMessage }, { status: 500 });
   }
-} 
+}

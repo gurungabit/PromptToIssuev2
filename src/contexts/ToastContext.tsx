@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import toast, { Toaster, ToastOptions } from 'react-hot-toast';
@@ -162,14 +162,14 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 // Custom hook to use toast context
 export const useToast = (): ToastContextType => {
   const context = useContext(ToastContext);
-  
+
   if (context === undefined) {
     throw new Error('useToast must be used within a ToastProvider');
   }
-  
+
   return context;
 };
 
 // Export additional utilities
 export { toast } from 'react-hot-toast';
-export type { ToastOptions } from 'react-hot-toast'; 
+export type { ToastOptions } from 'react-hot-toast';

@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React from 'react';
 import { useChat } from '@/contexts/ChatContext';
@@ -10,16 +10,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { ProjectSelection } from '@/lib/schemas';
 
 const TicketsPreview: React.FC = () => {
-  const { 
-    pendingTickets, 
-    approveTickets, 
-    rejectTickets, 
-    editTicket, 
+  const {
+    pendingTickets,
+    approveTickets,
+    rejectTickets,
+    editTicket,
     isLoading,
     gitlabConfig,
     showProjectSelection,
     setShowProjectSelection,
-    createGitLabIssues
+    createGitLabIssues,
   } = useChat();
 
   if (pendingTickets.length === 0) {
@@ -43,9 +43,7 @@ const TicketsPreview: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">
-                Ticket Preview ({pendingTickets.length})
-              </h3>
+              <h3 className="text-lg font-semibold">Ticket Preview ({pendingTickets.length})</h3>
             </div>
             <p className="text-sm text-muted-foreground">
               Review and approve the generated tickets
@@ -71,9 +69,10 @@ const TicketsPreview: React.FC = () => {
         {/* Action Buttons */}
         <div className="flex items-center justify-between pt-4 border-t">
           <div className="text-sm text-muted-foreground">
-            {pendingTickets.length} ticket{pendingTickets.length !== 1 ? 's' : ''} ready for creation
+            {pendingTickets.length} ticket{pendingTickets.length !== 1 ? 's' : ''} ready for
+            creation
           </div>
-          
+
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -84,7 +83,7 @@ const TicketsPreview: React.FC = () => {
               <X className="w-4 h-4" />
               Reject & Clarify
             </Button>
-            
+
             <Button
               variant="outline"
               onClick={() => approveTickets()}
@@ -125,4 +124,4 @@ const TicketsPreview: React.FC = () => {
   );
 };
 
-export { TicketsPreview }; 
+export { TicketsPreview };

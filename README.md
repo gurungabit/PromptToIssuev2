@@ -16,7 +16,7 @@ An intelligent chatbot application that generates structured tickets from natura
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - Docker (for PostgreSQL)
 - Git
 
@@ -170,8 +170,21 @@ npm run db:migrate   # Apply migrations
 
 ```bash
 npm run lint         # ESLint
+npm run format       # Format code with Prettier
+npm run format:check # Check code formatting
 npm run build        # Test production build
 ```
+
+### Code Formatting
+
+This project uses Prettier for consistent code formatting:
+
+- **Auto-format**: Code is automatically formatted on save (VS Code)
+- **Manual format**: Run `npm run format` to format all files
+- **Check format**: Run `npm run format:check` to verify formatting
+- **Configuration**: See `.prettierrc` for formatting rules
+
+The project integrates Prettier with ESLint to prevent conflicts between linting and formatting rules.
 
 ## 🐳 Docker Services
 

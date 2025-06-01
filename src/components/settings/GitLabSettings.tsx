@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -6,27 +6,27 @@ import { Input } from '@/components/ui/Input';
 import { useChat } from '@/contexts/ChatContext';
 import { GitLabClient } from '@/lib/gitlab/client';
 import type { GitLabConfig } from '@/lib/schemas';
-import { 
-  GitlabIcon as GitLab, 
-  Check, 
-  AlertCircle, 
-  Loader2, 
-  Eye, 
+import {
+  GitlabIcon as GitLab,
+  Check,
+  AlertCircle,
+  Loader2,
+  Eye,
   EyeOff,
   ExternalLink,
-  CheckCircle
+  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const GitLabSettings: React.FC = () => {
   const { gitlabConfig, setGitLabConfig } = useChat();
-  
+
   const [formData, setFormData] = useState<GitLabConfig>({
     baseUrl: gitlabConfig?.baseUrl || 'https://gitlab.com',
     accessToken: gitlabConfig?.accessToken || '',
     defaultProjectId: gitlabConfig?.defaultProjectId,
   });
-  
+
   const [showToken, setShowToken] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null);
@@ -55,7 +55,7 @@ const GitLabSettings: React.FC = () => {
     try {
       const client = new GitLabClient(formData);
       const isConnected = await client.testConnection();
-      
+
       if (isConnected) {
         setTestResult('success');
         setTestMessage('Connection successful! GitLab API is accessible.');
@@ -106,7 +106,6 @@ const GitLabSettings: React.FC = () => {
 
       {/* Configuration Form */}
       <div className="space-y-4">
-        
         {/* GitLab URL */}
         <div className="space-y-2">
           <label className="text-sm font-medium">GitLab URL</label>
@@ -115,7 +114,7 @@ const GitLabSettings: React.FC = () => {
               type="url"
               placeholder="https://gitlab.com"
               value={formData.baseUrl}
-              onChange={(e) => handleInputChange('baseUrl', e.target.value)}
+              onChange={e => handleInputChange('baseUrl', e.target.value)}
               className="pr-10"
             />
             <Button
@@ -141,7 +140,7 @@ const GitLabSettings: React.FC = () => {
               type={showToken ? 'text' : 'password'}
               placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
               value={formData.accessToken}
-              onChange={(e) => handleInputChange('accessToken', e.target.value)}
+              onChange={e => handleInputChange('accessToken', e.target.value)}
               className="pr-10"
             />
             <Button
@@ -154,8 +153,10 @@ const GitLabSettings: React.FC = () => {
             </Button>
           </div>
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>Create a personal access token with <strong>&quot;api&quot;</strong> scope</p>
-            <a 
+            <p>
+              Create a personal access token with <strong>&quot;api&quot;</strong> scope
+            </p>
+            <a
               href={`${formData.baseUrl}/-/profile/personal_access_tokens`}
               target="_blank"
               rel="noopener noreferrer"
@@ -173,7 +174,7 @@ const GitLabSettings: React.FC = () => {
             type="number"
             placeholder="e.g., 12345"
             value={formData.defaultProjectId || ''}
-            onChange={(e) => {
+            onChange={e => {
               const value = e.target.value;
               handleInputChange('defaultProjectId', value ? parseInt(value) : undefined);
             }}
@@ -186,22 +187,28 @@ const GitLabSettings: React.FC = () => {
 
       {/* Test Result */}
       {testResult && (
-        <div className={cn(
-          "p-4 rounded-lg border flex items-start gap-3",
-          testResult === 'success' 
-            ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800"
-            : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800"
-        )}>
+        <div
+          className={cn(
+            'p-4 rounded-lg border flex items-start gap-3',
+            testResult === 'success'
+              ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800'
+              : 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800'
+          )}
+        >
           {testResult === 'success' ? (
             <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
           ) : (
             <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
           )}
           <div className="flex-1">
-            <p className={cn(
-              "text-sm font-medium",
-              testResult === 'success' ? "text-green-800 dark:text-green-200" : "text-red-800 dark:text-red-200"
-            )}>
+            <p
+              className={cn(
+                'text-sm font-medium',
+                testResult === 'success'
+                  ? 'text-green-800 dark:text-green-200'
+                  : 'text-red-800 dark:text-red-200'
+              )}
+            >
               {testMessage}
             </p>
           </div>
@@ -211,20 +218,14 @@ const GitLabSettings: React.FC = () => {
       {/* Action Buttons */}
       <div className="flex items-center justify-between pt-4 border-t">
         <div className="text-sm text-muted-foreground">
-          {hasChanges && (
-            <span className="text-amber-600">⚠️ You have unsaved changes</span>
-          )}
+          {hasChanges && <span className="text-amber-600">⚠️ You have unsaved changes</span>}
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            onClick={resetConfiguration}
-            className="cursor-pointer"
-          >
+          <Button variant="outline" onClick={resetConfiguration} className="cursor-pointer">
             Reset
           </Button>
-          
+
           <Button
             variant="outline"
             onClick={testConnection}
@@ -243,12 +244,8 @@ const GitLabSettings: React.FC = () => {
               </>
             )}
           </Button>
-          
-          <Button
-            onClick={saveConfiguration}
-            disabled={!hasChanges}
-            className="cursor-pointer"
-          >
+
+          <Button onClick={saveConfiguration} disabled={!hasChanges} className="cursor-pointer">
             <Check className="w-4 h-4 mr-2" />
             Save Configuration
           </Button>
@@ -264,7 +261,9 @@ const GitLabSettings: React.FC = () => {
         <ol className="text-sm text-muted-foreground space-y-1 ml-4 list-decimal">
           <li>Go to your GitLab profile settings</li>
           <li>Navigate to &quot;Access Tokens&quot; section</li>
-          <li>Create a new token with <strong>&quot;api&quot;</strong> scope</li>
+          <li>
+            Create a new token with <strong>&quot;api&quot;</strong> scope
+          </li>
           <li>Copy the token and paste it above</li>
           <li>Test the connection to verify setup</li>
         </ol>
@@ -273,4 +272,4 @@ const GitLabSettings: React.FC = () => {
   );
 };
 
-export { GitLabSettings }; 
+export { GitLabSettings };

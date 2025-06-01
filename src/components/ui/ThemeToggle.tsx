@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { Button } from './Button';
@@ -11,11 +11,11 @@ const ThemeToggle: React.FC = () => {
     // Check localStorage first, then system preference
     const storedTheme = localStorage.getItem('theme');
     const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
+
     const shouldBeDark = storedTheme === 'dark' || (storedTheme === null && systemDark);
-    
+
     setIsDark(shouldBeDark);
-    
+
     if (shouldBeDark) {
       document.documentElement.classList.add('dark');
     } else {
@@ -26,7 +26,7 @@ const ThemeToggle: React.FC = () => {
   const toggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
-    
+
     if (newIsDark) {
       document.documentElement.classList.add('dark');
       localStorage.setItem('theme', 'dark');
@@ -43,13 +43,9 @@ const ThemeToggle: React.FC = () => {
       onClick={toggleTheme}
       className="rounded-2xl w-10 h-10 cursor-pointer hover:bg-gray-800/50 hover:scale-105 hover:shadow-md transition-all duration-200"
     >
-      {isDark ? (
-        <Sun className="w-5 h-5" />
-      ) : (
-        <Moon className="w-5 h-5" />
-      )}
+      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
     </Button>
   );
 };
 
-export { ThemeToggle }; 
+export { ThemeToggle };

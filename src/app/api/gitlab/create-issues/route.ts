@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GitLabClient } from '@/lib/gitlab/client';
-import type { 
-  Ticket, 
-  GitLabConfig, 
-  ProjectSelection,
-  GitLabIssueCreate 
-} from '@/lib/schemas';
+import type { Ticket, GitLabConfig, ProjectSelection, GitLabIssueCreate } from '@/lib/schemas';
 
 interface CreateIssuesRequest {
   tickets: Ticket[];
@@ -20,24 +15,15 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!tickets || !Array.isArray(tickets) || tickets.length === 0) {
-      return NextResponse.json(
-        { error: 'No tickets provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'No tickets provided' }, { status: 400 });
     }
 
     if (!projectSelection || !projectSelection.projectId) {
-      return NextResponse.json(
-        { error: 'Project selection is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Project selection is required' }, { status: 400 });
     }
 
     if (!gitlabConfig || !gitlabConfig.baseUrl || !gitlabConfig.accessToken) {
-      return NextResponse.json(
-        { error: 'GitLab configuration is incomplete' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'GitLab configuration is incomplete' }, { status: 400 });
     }
 
     // Initialize GitLab client
@@ -67,10 +53,7 @@ export async function POST(request: NextRequest) {
         };
 
         // Create the issue
-        const createdIssue = await gitlabClient.createIssue(
-          projectSelection.projectId,
-          issueData
-        );
+        const createdIssue = await gitlabClient.createIssue(projectSelection.projectId, issueData);
 
         createdIssues.push({
           ticketId: ticket.id,
@@ -81,7 +64,6 @@ export async function POST(request: NextRequest) {
           state: createdIssue.state,
           createdAt: createdIssue.created_at,
         });
-
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         errors.push({
@@ -99,20 +81,20 @@ export async function POST(request: NextRequest) {
       total: tickets.length,
       issues: createdIssues,
       errors: errors.length > 0 ? errors : undefined,
-      message: errors.length === 0 
-        ? `Successfully created ${createdIssues.length} issue${createdIssues.length !== 1 ? 's' : ''}`
-        : `Created ${createdIssues.length} of ${tickets.length} issues. ${errors.length} failed.`,
+      message:
+        errors.length === 0
+          ? `Successfully created ${createdIssues.length} issue${createdIssues.length !== 1 ? 's' : ''}`
+          : `Created ${createdIssues.length} of ${tickets.length} issues. ${errors.length} failed.`,
     };
 
     return NextResponse.json(response);
-
   } catch (error) {
     console.error('GitLab issue creation error:', error);
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
+
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: `Failed to create GitLab issues: ${errorMessage}`,
         created: 0,
@@ -138,7 +120,7 @@ function buildIssueDescription(ticket: Ticket): string {
   // Add tasks
   if (ticket.tasks.length > 0) {
     description += '## Tasks\n\n';
-    ticket.tasks.forEach((task) => {
+    ticket.tasks.forEach(task => {
       description += `- [ ] ${task.description}`;
       if (task.estimatedHours) {
         description += ` *(${task.estimatedHours}h)*`;
@@ -152,7 +134,7 @@ function buildIssueDescription(ticket: Ticket): string {
   description += '---\n\n';
   description += `**Type:** ${ticket.type}\n`;
   description += `**Priority:** ${ticket.priority}\n`;
-  
+
   if (ticket.estimatedHours) {
     description += `**Estimated Hours:** ${ticket.estimatedHours}\n`;
   }
@@ -163,8 +145,5 @@ function buildIssueDescription(ticket: Ticket): string {
 }
 
 export async function GET() {
-  return NextResponse.json(
-    { message: 'GitLab issue creation API is running' },
-    { status: 200 }
-  );
-} 
+  return NextResponse.json({ message: 'GitLab issue creation API is running' }, { status: 200 });
+}

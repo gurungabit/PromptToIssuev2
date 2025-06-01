@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -21,7 +21,7 @@ interface SharedConversation {
 const SharedConversationPage = () => {
   const params = useParams();
   const shareId = params.shareId as string;
-  
+
   const [conversation, setConversation] = useState<SharedConversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -32,13 +32,15 @@ const SharedConversationPage = () => {
       try {
         setIsLoading(true);
         const response = await fetch(`/api/shared/${shareId}`);
-        
+
         if (response.ok) {
           const data = await response.json();
           setConversation(data.conversation);
           setMessages(data.messages || []);
         } else if (response.status === 404) {
-          setError('This shared conversation could not be found. It may have been removed or the link is invalid.');
+          setError(
+            'This shared conversation could not be found. It may have been removed or the link is invalid.'
+          );
         } else {
           setError('Failed to load shared conversation. Please try again later.');
         }
@@ -76,7 +78,10 @@ const SharedConversationPage = () => {
           <h1 className="text-xl font-semibold">Conversation Not Found</h1>
           <p className="text-muted-foreground">{error}</p>
           <Link href="/">
-            <Button variant="outline" className="cursor-pointer hover:bg-accent hover:scale-105 transition-all duration-200">
+            <Button
+              variant="outline"
+              className="cursor-pointer hover:bg-accent hover:scale-105 transition-all duration-200"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Go to Home
             </Button>
@@ -109,7 +114,11 @@ const SharedConversationPage = () => {
               </div>
             </div>
             <Link href="/">
-              <Button variant="outline" size="sm" className="cursor-pointer hover:bg-accent hover:scale-105 transition-all duration-200">
+              <Button
+                variant="outline"
+                size="sm"
+                className="cursor-pointer hover:bg-accent hover:scale-105 transition-all duration-200"
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Home
               </Button>
@@ -126,7 +135,7 @@ const SharedConversationPage = () => {
           </div>
         ) : (
           <div className="space-y-8">
-            {messages.map((message) => (
+            {messages.map(message => (
               <ChatMessage key={message.id} message={message} readOnly={true} />
             ))}
           </div>
@@ -137,7 +146,7 @@ const SharedConversationPage = () => {
       <div className="border-t bg-muted/30 mt-12">
         <div className="max-w-4xl mx-auto px-4 py-6 text-center">
           <p className="text-sm text-muted-foreground">
-            This is a shared conversation. 
+            This is a shared conversation.
             <Link href="/" className="text-primary hover:underline ml-1">
               Create your own conversations
             </Link>
@@ -148,4 +157,4 @@ const SharedConversationPage = () => {
   );
 };
 
-export default SharedConversationPage; 
+export default SharedConversationPage;

@@ -10,16 +10,9 @@ import { generateId } from '@/lib/utils';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Extract data including conversationId for database storage
-    const { 
-      message, 
-      mode, 
-      provider, 
-      config, 
-      conversationHistory = [],
-      conversationId 
-    } = body;
+    const { message, mode, provider, config, conversationHistory = [], conversationId } = body;
 
     // Create the LLM provider with the provided config
     const llmProvider = await createProviderWithConfig({
@@ -57,13 +50,13 @@ export async function POST(request: NextRequest) {
             mode,
             metadata: {},
           });
-          
+
           // Update conversation lastMessageAt
           await db
             .update(conversations)
-            .set({ 
+            .set({
               lastMessageAt: new Date(),
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(conversations.id, conversationId));
         }
@@ -78,13 +71,13 @@ export async function POST(request: NextRequest) {
     // Convert conversation history to LLM format
     const llmMessages: LLMMessage[] = [
       ...conversationHistory.map((msg: Message) => ({
-        role: msg.role as "user" | "assistant",
+        role: msg.role as 'user' | 'assistant',
         content: msg.content,
       })),
       {
-        role: "user" as const,
+        role: 'user' as const,
         content: message,
-      }
+      },
     ];
 
     // Generate response from LLM
@@ -108,13 +101,13 @@ export async function POST(request: NextRequest) {
             mode,
             metadata: {},
           });
-          
+
           // Update conversation lastMessageAt again
           await db
             .update(conversations)
-            .set({ 
+            .set({
               lastMessageAt: new Date(),
-              updatedAt: new Date()
+              updatedAt: new Date(),
             })
             .where(eq(conversations.id, conversationId));
         }
@@ -152,9 +145,10 @@ export async function POST(request: NextRequest) {
           if (existingConversation.length > 0) {
             let responseContent = `I've analyzed your requirements and created ${aiResponse.tickets.length} ticket(s). `;
             responseContent += aiResponse.reasoning;
-            
+
             if (aiResponse.needsClarification && aiResponse.clarificationQuestions) {
-              responseContent += '\n\nI have some questions to better understand your requirements:\n';
+              responseContent +=
+                '\n\nI have some questions to better understand your requirements:\n';
               responseContent += aiResponse.clarificationQuestions.map(q => `• ${q}`).join('\n');
             }
 
@@ -165,13 +159,13 @@ export async function POST(request: NextRequest) {
               mode,
               metadata: { tickets: aiResponse.tickets },
             });
-            
+
             // Update conversation lastMessageAt
             await db
               .update(conversations)
-              .set({ 
+              .set({
                 lastMessageAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
               })
               .where(eq(conversations.id, conversationId));
           }
@@ -185,24 +179,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(aiResponse);
   } catch (error) {
     console.error('Chat API error:', error);
-    
+
     if (error instanceof Error) {
       return NextResponse.json(
         { error: `Failed to process request: ${error.message}` },
         { status: 500 }
       );
     }
-    
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
   }
 }
 
 export async function GET() {
-  return NextResponse.json(
-    { message: 'Chat API is running' },
-    { status: 200 }
-  );
-} 
+  return NextResponse.json({ message: 'Chat API is running' }, { status: 200 });
+}

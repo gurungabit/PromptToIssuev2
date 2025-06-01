@@ -1,21 +1,21 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import type { Ticket } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
-import { 
-  Edit3, 
-  Save, 
-  X, 
+import {
+  Edit3,
+  Save,
+  X,
   Plus,
   Trash2,
   CheckCircle,
   Circle,
   Clock,
   Tag,
-  AlertTriangle
+  AlertTriangle,
 } from 'lucide-react';
 
 interface TicketCardProps {
@@ -38,7 +38,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
     onEdit?.(ticket.id, editedTicket);
     setIsEditing(false);
     setShowSaveSuccess(true);
-    
+
     // Hide success feedback after 2 seconds
     setTimeout(() => {
       setShowSaveSuccess(false);
@@ -55,32 +55,32 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
 
   const addAcceptanceCriteria = () => {
     if (!newAC.trim()) return;
-    
+
     const newCriteria = {
       id: `ac-${Date.now()}`,
       description: newAC.trim(),
       completed: false,
     };
-    
+
     setEditedTicket(prev => ({
       ...prev,
-      acceptanceCriteria: [...prev.acceptanceCriteria, newCriteria]
+      acceptanceCriteria: [...prev.acceptanceCriteria, newCriteria],
     }));
     setNewAC('');
   };
 
   const addTask = () => {
     if (!newTask.trim()) return;
-    
+
     const newTaskItem = {
       id: `task-${Date.now()}`,
       description: newTask.trim(),
       completed: false,
     };
-    
+
     setEditedTicket(prev => ({
       ...prev,
-      tasks: [...prev.tasks, newTaskItem]
+      tasks: [...prev.tasks, newTaskItem],
     }));
     setNewTask('');
   };
@@ -88,47 +88,58 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
   const removeAcceptanceCriteria = (acId: string) => {
     setEditedTicket(prev => ({
       ...prev,
-      acceptanceCriteria: prev.acceptanceCriteria.filter(ac => ac.id !== acId)
+      acceptanceCriteria: prev.acceptanceCriteria.filter(ac => ac.id !== acId),
     }));
   };
 
   const removeTask = (taskId: string) => {
     setEditedTicket(prev => ({
       ...prev,
-      tasks: prev.tasks.filter(task => task.id !== taskId)
+      tasks: prev.tasks.filter(task => task.id !== taskId),
     }));
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'critical': return 'text-red-600 bg-red-100 dark:bg-red-900/20';
-      case 'high': return 'text-orange-600 bg-orange-100 dark:bg-orange-900/20';
-      case 'medium': return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20';
-      case 'low': return 'text-green-600 bg-green-100 dark:bg-green-900/20';
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
+      case 'critical':
+        return 'text-red-600 bg-red-100 dark:bg-red-900/20';
+      case 'high':
+        return 'text-orange-600 bg-orange-100 dark:bg-orange-900/20';
+      case 'medium':
+        return 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/20';
+      case 'low':
+        return 'text-green-600 bg-green-100 dark:bg-green-900/20';
+      default:
+        return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
     }
   };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'feature': return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20';
-      case 'bug': return 'text-red-600 bg-red-100 dark:bg-red-900/20';
-      case 'task': return 'text-purple-600 bg-purple-100 dark:bg-purple-900/20';
-      case 'improvement': return 'text-green-600 bg-green-100 dark:bg-green-900/20';
-      case 'epic': return 'text-indigo-600 bg-indigo-100 dark:bg-indigo-900/20';
-      default: return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
+      case 'feature':
+        return 'text-blue-600 bg-blue-100 dark:bg-blue-900/20';
+      case 'bug':
+        return 'text-red-600 bg-red-100 dark:bg-red-900/20';
+      case 'task':
+        return 'text-purple-600 bg-purple-100 dark:bg-purple-900/20';
+      case 'improvement':
+        return 'text-green-600 bg-green-100 dark:bg-green-900/20';
+      case 'epic':
+        return 'text-indigo-600 bg-indigo-100 dark:bg-indigo-900/20';
+      default:
+        return 'text-gray-600 bg-gray-100 dark:bg-gray-900/20';
     }
   };
 
   const addLabel = () => {
     if (!newLabel.trim()) return;
-    
+
     const labelText = newLabel.trim();
     if (editedTicket.labels.includes(labelText)) return; // Prevent duplicates
-    
+
     setEditedTicket(prev => ({
       ...prev,
-      labels: [...prev.labels, labelText]
+      labels: [...prev.labels, labelText],
     }));
     setNewLabel('');
   };
@@ -136,7 +147,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
   const removeLabel = (labelToRemove: string) => {
     setEditedTicket(prev => ({
       ...prev,
-      labels: prev.labels.filter(label => label !== labelToRemove)
+      labels: prev.labels.filter(label => label !== labelToRemove),
     }));
   };
 
@@ -148,60 +159,72 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
           {isEditing ? (
             <Input
               value={editedTicket.title}
-              onChange={(e) => setEditedTicket(prev => ({ ...prev, title: e.target.value }))}
+              onChange={e => setEditedTicket(prev => ({ ...prev, title: e.target.value }))}
               className="font-semibold w-full"
               placeholder="Ticket title"
             />
           ) : (
             <h3 className="font-semibold text-lg">{ticket.title}</h3>
           )}
-          
+
           <div className="flex items-center gap-2 flex-wrap">
             {isEditing ? (
               <select
                 value={editedTicket.type}
-                onChange={(e) => setEditedTicket(prev => ({ 
-                  ...prev, 
-                  type: e.target.value as typeof typeOptions[number]
-                }))}
+                onChange={e =>
+                  setEditedTicket(prev => ({
+                    ...prev,
+                    type: e.target.value as (typeof typeOptions)[number],
+                  }))
+                }
                 className="text-xs px-2 py-1 rounded-full font-medium border bg-background cursor-pointer"
               >
                 {typeOptions.map(type => (
-                  <option key={type} value={type}>{type}</option>
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
                 ))}
               </select>
             ) : (
-              <span className={cn(
-                "text-xs px-2 py-1 rounded-full font-medium",
-                getTypeColor(ticket.type)
-              )}>
+              <span
+                className={cn(
+                  'text-xs px-2 py-1 rounded-full font-medium',
+                  getTypeColor(ticket.type)
+                )}
+              >
                 {ticket.type}
               </span>
             )}
-            
+
             {isEditing ? (
               <select
                 value={editedTicket.priority}
-                onChange={(e) => setEditedTicket(prev => ({ 
-                  ...prev, 
-                  priority: e.target.value as typeof priorityOptions[number]
-                }))}
+                onChange={e =>
+                  setEditedTicket(prev => ({
+                    ...prev,
+                    priority: e.target.value as (typeof priorityOptions)[number],
+                  }))
+                }
                 className="text-xs px-2 py-1 rounded-full font-medium border bg-background cursor-pointer flex items-center gap-1"
               >
                 {priorityOptions.map(priority => (
-                  <option key={priority} value={priority}>{priority}</option>
+                  <option key={priority} value={priority}>
+                    {priority}
+                  </option>
                 ))}
               </select>
             ) : (
-              <span className={cn(
-                "text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1",
-                getPriorityColor(ticket.priority)
-              )}>
+              <span
+                className={cn(
+                  'text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1',
+                  getPriorityColor(ticket.priority)
+                )}
+              >
                 <AlertTriangle className="w-3 h-3" />
                 {ticket.priority}
               </span>
             )}
-            
+
             {ticket.estimatedHours && (
               <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground flex items-center gap-1">
                 <Clock className="w-3 h-3" />
@@ -210,23 +233,14 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
             )}
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2 flex-shrink-0">
           {isEditing ? (
             <>
-              <Button 
-                size="sm" 
-                onClick={handleSave}
-                className="cursor-pointer"
-              >
+              <Button size="sm" onClick={handleSave} className="cursor-pointer">
                 <Save className="w-4 h-4" />
               </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={handleCancel}
-                className="cursor-pointer"
-              >
+              <Button size="sm" variant="outline" onClick={handleCancel} className="cursor-pointer">
                 <X className="w-4 h-4" />
               </Button>
             </>
@@ -238,9 +252,9 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
                   Saved!
                 </div>
               )}
-              <Button 
-                size="sm" 
-                variant="outline" 
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() => setIsEditing(true)}
                 className="cursor-pointer"
               >
@@ -257,14 +271,12 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
         {isEditing ? (
           <textarea
             value={editedTicket.description}
-            onChange={(e) => setEditedTicket(prev => ({ ...prev, description: e.target.value }))}
+            onChange={e => setEditedTicket(prev => ({ ...prev, description: e.target.value }))}
             className="w-full p-3 border rounded-md resize-none min-h-[80px]"
             placeholder="Ticket description"
           />
         ) : (
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            {ticket.description}
-          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{ticket.description}</p>
         )}
       </div>
 
@@ -275,7 +287,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
           Acceptance Criteria ({ticket.acceptanceCriteria.length})
         </h4>
         <div className="space-y-2">
-          {(isEditing ? editedTicket : ticket).acceptanceCriteria.map((ac) => (
+          {(isEditing ? editedTicket : ticket).acceptanceCriteria.map(ac => (
             <div key={ac.id} className="flex items-start gap-2">
               <Circle className="w-4 h-4 mt-0.5 text-muted-foreground" />
               <span className="text-sm flex-1">{ac.description}</span>
@@ -291,20 +303,16 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
               )}
             </div>
           ))}
-          
+
           {isEditing && (
             <div className="flex gap-2">
               <Input
                 value={newAC}
-                onChange={(e) => setNewAC(e.target.value)}
+                onChange={e => setNewAC(e.target.value)}
                 placeholder="Add acceptance criteria"
-                onKeyDown={(e) => e.key === 'Enter' && addAcceptanceCriteria()}
+                onKeyDown={e => e.key === 'Enter' && addAcceptanceCriteria()}
               />
-              <Button 
-                size="sm" 
-                onClick={addAcceptanceCriteria}
-                className="cursor-pointer"
-              >
+              <Button size="sm" onClick={addAcceptanceCriteria} className="cursor-pointer">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -319,7 +327,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
           Tasks ({ticket.tasks.length})
         </h4>
         <div className="space-y-2">
-          {(isEditing ? editedTicket : ticket).tasks.map((task) => (
+          {(isEditing ? editedTicket : ticket).tasks.map(task => (
             <div key={task.id} className="flex items-start gap-2">
               <Circle className="w-4 h-4 mt-0.5 text-muted-foreground" />
               <div className="flex-1">
@@ -342,20 +350,16 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
               )}
             </div>
           ))}
-          
+
           {isEditing && (
             <div className="flex gap-2">
               <Input
                 value={newTask}
-                onChange={(e) => setNewTask(e.target.value)}
+                onChange={e => setNewTask(e.target.value)}
                 placeholder="Add task"
-                onKeyDown={(e) => e.key === 'Enter' && addTask()}
+                onKeyDown={e => e.key === 'Enter' && addTask()}
               />
-              <Button 
-                size="sm" 
-                onClick={addTask}
-                className="cursor-pointer"
-              >
+              <Button size="sm" onClick={addTask} className="cursor-pointer">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -390,21 +394,17 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
               </span>
             ))}
           </div>
-          
+
           {isEditing && (
             <div className="flex gap-2">
               <Input
                 value={newLabel}
-                onChange={(e) => setNewLabel(e.target.value)}
+                onChange={e => setNewLabel(e.target.value)}
                 placeholder="Add label"
-                onKeyDown={(e) => e.key === 'Enter' && addLabel()}
+                onKeyDown={e => e.key === 'Enter' && addLabel()}
                 className="flex-1"
               />
-              <Button 
-                size="sm" 
-                onClick={addLabel}
-                className="cursor-pointer"
-              >
+              <Button size="sm" onClick={addLabel} className="cursor-pointer">
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
@@ -415,4 +415,4 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
   );
 };
 
-export { TicketCard }; 
+export { TicketCard };

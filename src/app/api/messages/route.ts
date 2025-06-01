@@ -8,10 +8,7 @@ export async function POST(request: NextRequest) {
     const { conversationId, role, content, mode } = await request.json();
 
     if (!conversationId || !role || !content || !mode) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     // Verify conversation exists
     const existingConversation = await db
@@ -21,10 +18,7 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (existingConversation.length === 0) {
-      return NextResponse.json(
-        { error: 'Conversation not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
     // Insert the message
@@ -42,9 +36,9 @@ export async function POST(request: NextRequest) {
     // Update conversation lastMessageAt
     await db
       .update(conversations)
-      .set({ 
+      .set({
         lastMessageAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(conversations.id, conversationId));
 
@@ -52,12 +46,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message: newMessage,
     });
-
   } catch (error) {
     console.error('Error saving message:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

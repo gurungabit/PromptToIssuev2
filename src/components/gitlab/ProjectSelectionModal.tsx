@@ -1,22 +1,28 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { GitLabClient } from '@/lib/gitlab/client';
-import type { GitLabProject, GitLabMilestone, GitLabConfig, Ticket, ProjectSelection } from '@/lib/schemas';
-import { 
-  Search, 
-  X, 
-  ExternalLink, 
-  Calendar, 
-  GitBranch, 
+import type {
+  GitLabProject,
+  GitLabMilestone,
+  GitLabConfig,
+  Ticket,
+  ProjectSelection,
+} from '@/lib/schemas';
+import {
+  Search,
+  X,
+  ExternalLink,
+  Calendar,
+  GitBranch,
   Clock,
   CheckCircle,
   AlertCircle,
   Loader2,
   GitlabIcon as GitLab,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -36,54 +42,60 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
   gitlabConfig,
 }) => {
   const [gitlabClient] = useState(() => new GitLabClient(gitlabConfig));
-  
+
   // State
   const [projects, setProjects] = useState<GitLabProject[]>([]);
   const [milestones, setMilestones] = useState<GitLabMilestone[]>([]);
   const [selectedProject, setSelectedProject] = useState<GitLabProject | null>(null);
   const [selectedMilestone, setSelectedMilestone] = useState<GitLabMilestone | null>(null);
   const [customProjectId, setCustomProjectId] = useState('');
-  
+
   // Search states
   const [projectSearch, setProjectSearch] = useState('');
   const [milestoneSearch, setMilestoneSearch] = useState('');
-  
+
   // Loading states
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
   const [isLoadingMilestones, setIsLoadingMilestones] = useState(false);
   const [isRefreshingMilestones, setIsRefreshingMilestones] = useState(false);
-  
+
   // Error states
   const [projectError, setProjectError] = useState<string>('');
   const [milestoneError, setMilestoneError] = useState<string>('');
 
-  const loadProjects = useCallback(async (search?: string) => {
-    try {
-      setIsLoadingProjects(true);
-      setProjectError('');
-      const fetchedProjects = await gitlabClient.getAllProjects(search);
-      setProjects(fetchedProjects);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load projects';
-      setProjectError(errorMessage);
-    } finally {
-      setIsLoadingProjects(false);
-    }
-  }, [gitlabClient]);
+  const loadProjects = useCallback(
+    async (search?: string) => {
+      try {
+        setIsLoadingProjects(true);
+        setProjectError('');
+        const fetchedProjects = await gitlabClient.getAllProjects(search);
+        setProjects(fetchedProjects);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load projects';
+        setProjectError(errorMessage);
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    },
+    [gitlabClient]
+  );
 
-  const loadMilestones = useCallback(async (projectId: number, search?: string) => {
-    try {
-      setIsLoadingMilestones(true);
-      setMilestoneError('');
-      const fetchedMilestones = await gitlabClient.getAllMilestonesForProject(projectId, search);
-      setMilestones(fetchedMilestones);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load milestones';
-      setMilestoneError(errorMessage);
-    } finally {
-      setIsLoadingMilestones(false);
-    }
-  }, [gitlabClient]);
+  const loadMilestones = useCallback(
+    async (projectId: number, search?: string) => {
+      try {
+        setIsLoadingMilestones(true);
+        setMilestoneError('');
+        const fetchedMilestones = await gitlabClient.getAllMilestonesForProject(projectId, search);
+        setMilestones(fetchedMilestones);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to load milestones';
+        setMilestoneError(errorMessage);
+      } finally {
+        setIsLoadingMilestones(false);
+      }
+    },
+    [gitlabClient]
+  );
 
   // Load projects on mount
   useEffect(() => {
@@ -120,17 +132,16 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
 
   const handleMilestoneRefresh = async () => {
     if (!selectedProject) return;
-    
+
     try {
       setIsRefreshingMilestones(true);
       setMilestoneError('');
-      
+
       // Clear cache for this project
       gitlabClient.clearProjectMilestoneCache(selectedProject.path_with_namespace);
-      
+
       // Force reload milestones
       await loadMilestones(selectedProject.id, milestoneSearch);
-      
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to refresh milestones';
       setMilestoneError(errorMessage);
@@ -177,9 +188,10 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
 
   const filteredProjects = useCallback(() => {
     if (!projectSearch.trim()) return projects;
-    return projects.filter(project =>
-      project.name.toLowerCase().includes(projectSearch.toLowerCase()) ||
-      project.path_with_namespace.toLowerCase().includes(projectSearch.toLowerCase())
+    return projects.filter(
+      project =>
+        project.name.toLowerCase().includes(projectSearch.toLowerCase()) ||
+        project.path_with_namespace.toLowerCase().includes(projectSearch.toLowerCase())
     );
   }, [projects, projectSearch]);
 
@@ -195,7 +207,6 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-background border rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b bg-background">
           <div className="flex items-center gap-3">
@@ -203,7 +214,8 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
             <div>
               <h2 className="text-xl font-semibold">Create GitLab Issues</h2>
               <p className="text-sm text-muted-foreground">
-                Select project and milestone for {tickets.length} ticket{tickets.length !== 1 ? 's' : ''}
+                Select project and milestone for {tickets.length} ticket
+                {tickets.length !== 1 ? 's' : ''}
               </p>
             </div>
           </div>
@@ -225,7 +237,7 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                 <GitBranch className="w-4 h-4" />
                 Select Project
               </h3>
-              
+
               {/* Search */}
               <div className="space-y-3">
                 <div className="relative">
@@ -233,18 +245,18 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                   <Input
                     placeholder="Search projects..."
                     value={projectSearch}
-                    onChange={(e) => handleProjectSearch(e.target.value)}
+                    onChange={e => handleProjectSearch(e.target.value)}
                     className="pl-10"
                   />
                 </div>
-                
+
                 {/* Custom Project ID */}
                 <div className="flex gap-2">
                   <Input
                     placeholder="Or enter project ID..."
                     value={customProjectId}
-                    onChange={(e) => setCustomProjectId(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleCustomProjectSelect()}
+                    onChange={e => setCustomProjectId(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleCustomProjectSelect()}
                     className="flex-1"
                   />
                   <Button
@@ -253,11 +265,7 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                     disabled={!customProjectId.trim() || isLoadingProjects}
                     className="cursor-pointer hover:bg-primary/90 hover:shadow-md transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
                   >
-                    {isLoadingProjects ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      'Add'
-                    )}
+                    {isLoadingProjects ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add'}
                   </Button>
                 </div>
               </div>
@@ -277,15 +285,15 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                filteredProjects().map((project) => (
+                filteredProjects().map(project => (
                   <div
                     key={project.id}
                     onClick={() => setSelectedProject(project)}
                     className={cn(
-                      "p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md",
+                      'p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md',
                       selectedProject?.id === project.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
                     )}
                   >
                     <div className="flex items-start justify-between">
@@ -303,7 +311,7 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           window.open(project.web_url, '_blank');
                         }}
@@ -333,7 +341,7 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                 Select Milestone
                 <span className="text-xs text-muted-foreground">(Optional)</span>
               </h3>
-              
+
               {selectedProject ? (
                 <div className="space-y-2">
                   <div className="flex gap-2">
@@ -342,7 +350,7 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                       <Input
                         placeholder="Search milestones..."
                         value={milestoneSearch}
-                        onChange={(e) => handleMilestoneSearch(e.target.value)}
+                        onChange={e => handleMilestoneSearch(e.target.value)}
                         className="pl-10"
                       />
                     </div>
@@ -354,11 +362,10 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                       className="cursor-pointer flex items-center gap-2 hover:bg-primary/10 hover:border-primary/50 hover:shadow-md transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
                       title="Refresh milestones from GitLab"
                     >
-                      <RefreshCw className={cn(
-                        "w-4 h-4",
-                        isRefreshingMilestones && "animate-spin"
-                      )} />
-                      {isRefreshingMilestones ? "Refreshing..." : "Refresh"}
+                      <RefreshCw
+                        className={cn('w-4 h-4', isRefreshingMilestones && 'animate-spin')}
+                      />
+                      {isRefreshingMilestones ? 'Refreshing...' : 'Refresh'}
                     </Button>
                   </div>
                 </div>
@@ -382,14 +389,16 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                 <div
                   onClick={() => setSelectedMilestone(null)}
                   className={cn(
-                    "p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md",
+                    'p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md',
                     !selectedMilestone
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
                   )}
                 >
                   <div className="text-sm font-medium">No Milestone</div>
-                  <div className="text-xs text-muted-foreground">Create issues without a milestone</div>
+                  <div className="text-xs text-muted-foreground">
+                    Create issues without a milestone
+                  </div>
                 </div>
               )}
 
@@ -398,15 +407,15 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </div>
               ) : (
-                filteredMilestones().map((milestone) => (
+                filteredMilestones().map(milestone => (
                   <div
                     key={milestone.id}
                     onClick={() => setSelectedMilestone(milestone)}
                     className={cn(
-                      "p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md",
+                      'p-3 rounded-lg border cursor-pointer transition-all duration-200 hover:shadow-md',
                       selectedMilestone?.id === milestone.id
-                        ? "border-primary bg-primary/10"
-                        : "border-border hover:border-primary/50"
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
                     )}
                   >
                     <div className="flex items-start justify-between">
@@ -424,12 +433,14 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                               {new Date(milestone.due_date).toLocaleDateString()}
                             </span>
                           )}
-                          <span className={cn(
-                            "text-xs px-1.5 py-0.5 rounded-full",
-                            milestone.state === 'active' 
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400"
-                              : "bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400"
-                          )}>
+                          <span
+                            className={cn(
+                              'text-xs px-1.5 py-0.5 rounded-full',
+                              milestone.state === 'active'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
+                            )}
+                          >
                             {milestone.state}
                           </span>
                         </div>
@@ -437,7 +448,7 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation();
                           window.open(milestone.web_url, '_blank');
                         }}
@@ -473,7 +484,7 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
               <span>Please select a project to continue</span>
             )}
           </div>
-          
+
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -496,4 +507,4 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
   );
 };
 
-export { ProjectSelectionModal }; 
+export { ProjectSelectionModal };
