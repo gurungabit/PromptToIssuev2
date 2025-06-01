@@ -3,16 +3,31 @@ import { db } from '@/lib/db';
 import { conversations, messages } from '@/lib/db/schema';
 import { eq, desc, count, sql } from 'drizzle-orm';
 
+// Helper function to validate UUID format
+function isValidUUID(id: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(id);
+}
+
+// Helper function to get user ID from request headers
+function getUserIdFromRequest(request: NextRequest): string | null {
+  const userId = request.headers.get('x-user-id');
+  return userId && isValidUUID(userId) ? userId : null;
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get('userId');
-
+    // Get user ID from headers for authentication
+    const userId = getUserIdFromRequest(request);
     if (!userId) {
       return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
+        { error: 'Unauthorized' },
+        { status: 401 }
       );
     }
+
+    // Note: We ignore the userId query parameter and use the authenticated user ID
+    // This prevents users from accessing other users' conversations
 
     // Get conversations with message counts and last message
     const userConversations = await db

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { generateId } from '@/lib/utils';
 import type { 
   Message, 
@@ -79,6 +80,7 @@ interface ChatProviderProps {
 }
 
 export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMode, setCurrentMode] = useState<ChatMode>('ticket');
   const [currentProvider, setCurrentProvider] = useState<LLMProvider>('ollama');
@@ -121,6 +123,19 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   const [gitlabConfig, setGitlabConfig] = useState<GitLabConfig | null>(null);
   const [showProjectSelection, setShowProjectSelection] = useState(false);
+
+  // Helper function to get auth headers
+  const getAuthHeaders = useCallback(() => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (user?.id) {
+      headers['x-user-id'] = user.id;
+    }
+    
+    return headers;
+  }, [user?.id]);
 
   // Load persisted state from localStorage
   useEffect(() => {
@@ -299,10 +314,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
   // Real conversation management functions
   const loadUserConversations = useCallback(async (userId?: string) => {
-    if (!userId) return;
+    if (!userId || !user?.id) return;
     
     try {
-      const response = await fetch(`/api/conversations?userId=${userId}`);
+      const response = await fetch('/api/conversations', {
+        headers: getAuthHeaders(),
+      });
       if (response.ok) {
         const data = await response.json();
         setConversations(data.conversations || []);
@@ -310,7 +327,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     } catch (error) {
       console.error('Failed to load conversations:', error);
     }
-  }, []);
+  }, [getAuthHeaders, user?.id]);
 
   const createNewConversation = useCallback(async (title?: string, clearUI = true) => {
     try {
@@ -582,7 +599,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     try {
       setIsLoading(true);
       
-      const response = await fetch(`/api/conversations/${conversationId}`);
+      const response = await fetch(`/api/conversations/${conversationId}`, {
+        headers: getAuthHeaders(),
+      });
+      
       if (response.ok) {
         const data = await response.json();
         
@@ -595,9 +615,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         setCurrentProvider(data.conversation.provider);
         
         setPendingTickets([]); // Clear any pending tickets
-      } else if (response.status === 404) {
-        // Conversation not found (likely deleted or invalid ID) - don't show error message
-        console.log('Conversation not found:', conversationId);
+      } else if (response.status === 404 || response.status === 401) {
+        // Conversation not found or unauthorized - don't show error message
+        console.log('Conversation not found or unauthorized:', conversationId, response.status);
         // Clear current state silently
         setMessages([]);
         setCurrentConversationId(null);
@@ -629,12 +649,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [getAuthHeaders]);
 
   const deleteConversation = useCallback(async (conversationId: string) => {
     try {
       const response = await fetch(`/api/conversations/${conversationId}`, {
         method: 'DELETE',
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -654,15 +675,13 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       console.error('Failed to delete conversation:', error);
       throw error;
     }
-  }, [currentConversationId]);
+  }, [currentConversationId, getAuthHeaders]);
 
   const updateConversationTitle = useCallback(async (conversationId: string, title: string) => {
     try {
       const response = await fetch(`/api/conversations/${conversationId}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({ title }),
       });
 
@@ -682,7 +701,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       console.error('Failed to update conversation title:', error);
       throw error;
     }
-  }, []);
+  }, [getAuthHeaders]);
 
   const contextValue: ChatContextType = {
     // State

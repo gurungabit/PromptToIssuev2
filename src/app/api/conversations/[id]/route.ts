@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { conversations, messages } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 // Helper function to validate UUID format
 function isValidUUID(id: string): boolean {
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
+}
+
+// Helper function to get user ID from request headers
+function getUserIdFromRequest(request: NextRequest): string | null {
+  const userId = request.headers.get('x-user-id');
+  return userId && isValidUUID(userId) ? userId : null;
 }
 
 export async function GET(
@@ -32,11 +38,23 @@ export async function GET(
       );
     }
 
-    // Get conversation with messages
+    // Get user ID from request
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Get conversation with user validation
     const [conversation] = await db
       .select()
       .from(conversations)
-      .where(eq(conversations.id, conversationId))
+      .where(and(
+        eq(conversations.id, conversationId),
+        eq(conversations.userId, userId)
+      ))
       .limit(1);
 
     if (!conversation) {
@@ -116,13 +134,25 @@ export async function PATCH(
       );
     }
 
+    // Get user ID from request
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const [updatedConversation] = await db
       .update(conversations)
       .set({ 
         title,
         updatedAt: new Date()
       })
-      .where(eq(conversations.id, conversationId))
+      .where(and(
+        eq(conversations.id, conversationId),
+        eq(conversations.userId, userId)
+      ))
       .returning();
 
     if (!updatedConversation) {
@@ -169,10 +199,22 @@ export async function DELETE(
       );
     }
 
+    // Get user ID from request
+    const userId = getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     // Delete conversation (messages will be cascade deleted)
     const deletedConversation = await db
       .delete(conversations)
-      .where(eq(conversations.id, conversationId))
+      .where(and(
+        eq(conversations.id, conversationId),
+        eq(conversations.userId, userId)
+      ))
       .returning();
 
     if (deletedConversation.length === 0) {
