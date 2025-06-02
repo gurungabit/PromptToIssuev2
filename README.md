@@ -186,15 +186,70 @@ This project uses Prettier for consistent code formatting:
 
 The project integrates Prettier with ESLint to prevent conflicts between linting and formatting rules.
 
-## 🐳 Docker Services
+## 🐳 Docker Deployment
 
-The `docker-compose.yml` includes:
+### Development with Docker (Database Only)
 
-- **PostgreSQL 15**: Main database
-- **pgAdmin**: Database management UI (optional)
-  - URL: [http://localhost:5050](http://localhost:5050)
-  - Email: admin@example.com
-  - Password: admin
+The existing setup runs only PostgreSQL in Docker for development:
+
+```bash
+npm run docker:up      # Start PostgreSQL container
+npm run docker:down    # Stop PostgreSQL container
+npm run docker:logs    # View PostgreSQL logs
+```
+
+### Full Production Deployment with Docker
+
+Deploy the entire application stack (app + database) using Docker:
+
+```bash
+# 1. Create production environment file
+cp .env.production.example .env.production
+# Edit .env.production with your API keys
+
+# 2. Build and start all services
+npm run docker:prod:up
+
+# 3. View logs
+npm run docker:prod:logs
+
+# 4. Stop all services
+npm run docker:prod:down
+```
+
+### Manual Docker Build
+
+Build and run the application Docker image manually:
+
+```bash
+# Build the image
+npm run docker:build
+
+# Run the container (requires database to be running)
+npm run docker:run
+```
+
+### Docker Services (Production)
+
+The production setup includes:
+
+- **Next.js Application**: Main app running on port 3000
+- **PostgreSQL 15**: Database on port 5432
+- **pgAdmin**: Database management UI on port 5050
+
+### Environment Variables for Docker
+
+When using Docker production setup, configure these in `.env.production`:
+
+```env
+# Required
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=...
+
+# Database (automatically configured for Docker)
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/prompt_to_issue
+```
 
 ## 📝 API Documentation
 
