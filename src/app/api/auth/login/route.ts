@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { users, userSettings } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { stringifyJsonField } from '@/lib/db/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,8 +30,8 @@ export async function POST(request: NextRequest) {
       await db
         .update(users)
         .set({
-          lastLogin: new Date(),
-          updatedAt: new Date(),
+          lastLogin: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(users.id, user.id));
     } else {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
           email,
           username,
           fullName: username, // Default to username
-          lastLogin: new Date(),
+          lastLogin: new Date().toISOString(),
           isActive: true,
         })
         .returning();
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
         theme: 'dark',
         defaultMode: 'ticket',
         defaultProvider: 'ollama',
-        providerConfigs: {
+        providerConfigs: stringifyJsonField({
           ollama: {
             provider: 'ollama',
             model: 'mistral:latest',
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
             maxTokens: 4000,
             temperature: 0.7,
           },
-        },
+        }),
       });
     }
 

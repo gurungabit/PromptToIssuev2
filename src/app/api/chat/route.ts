@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import type { LLMMessage } from '@/lib/llm/base';
 import type { Message } from '@/lib/schemas';
 import { generateId } from '@/lib/utils';
+import { stringifyJsonField } from '@/lib/db/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,15 +49,15 @@ export async function POST(request: NextRequest) {
             role: 'user',
             content: message,
             mode,
-            metadata: {},
+            metadata: stringifyJsonField({}),
           });
 
           // Update conversation lastMessageAt
           await db
             .update(conversations)
             .set({
-              lastMessageAt: new Date(),
-              updatedAt: new Date(),
+              lastMessageAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
             })
             .where(eq(conversations.id, conversationId));
         }
@@ -97,15 +98,15 @@ export async function POST(request: NextRequest) {
             role: 'assistant',
             content: aiResponse.content,
             mode,
-            metadata: {},
+            metadata: stringifyJsonField({}),
           });
 
           // Update conversation lastMessageAt again
           await db
             .update(conversations)
             .set({
-              lastMessageAt: new Date(),
-              updatedAt: new Date(),
+              lastMessageAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
             })
             .where(eq(conversations.id, conversationId));
         }
@@ -155,15 +156,15 @@ export async function POST(request: NextRequest) {
               role: 'assistant',
               content: responseContent,
               mode,
-              metadata: { tickets: aiResponse.tickets },
+              metadata: stringifyJsonField({ tickets: aiResponse.tickets }),
             });
 
             // Update conversation lastMessageAt
             await db
               .update(conversations)
               .set({
-                lastMessageAt: new Date(),
-                updatedAt: new Date(),
+                lastMessageAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
               })
               .where(eq(conversations.id, conversationId));
           }

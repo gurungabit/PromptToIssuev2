@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GitLabClient } from '@/lib/gitlab/client';
 import type { Ticket, GitLabConfig, ProjectSelection, GitLabIssueCreate } from '@/lib/schemas';
+import { parseJsonField } from '@/lib/db/utils';
 
 interface CreateIssuesRequest {
   tickets: Ticket[];
@@ -44,11 +45,16 @@ export async function POST(request: NextRequest) {
     // Create issues one by one
     for (const ticket of tickets) {
       try {
+        // Parse JSON fields for SQLite
+        const acceptanceCriteria = parseJsonField(ticket.acceptanceCriteria, []);
+        const tasks = parseJsonField(ticket.tasks, []);
+        const labels = parseJsonField(ticket.labels, []);
+
         // Convert ticket to GitLab issue format
         const issueData: GitLabIssueCreate = {
           title: ticket.title,
           description: buildIssueDescription(ticket),
-          labels: ticket.labels,
+          labels: labels,
           ...(projectSelection.milestoneId && { milestone_id: projectSelection.milestoneId }),
         };
 
@@ -109,18 +115,18 @@ function buildIssueDescription(ticket: Ticket): string {
   let description = ticket.description + '\n\n';
 
   // Add acceptance criteria
-  if (ticket.acceptanceCriteria.length > 0) {
+  if (acceptanceCriteria.length > 0) {
     description += '## Acceptance Criteria\n\n';
-    ticket.acceptanceCriteria.forEach((ac, index) => {
+    acceptanceCriteria.forEach((ac, index) => {
       description += `${index + 1}. ${ac.description}\n`;
     });
     description += '\n';
   }
 
   // Add tasks
-  if (ticket.tasks.length > 0) {
+  if (tasks.length > 0) {
     description += '## Tasks\n\n';
-    ticket.tasks.forEach(task => {
+    tasks.forEach(task => {
       description += `- [ ] ${task.description}`;
       if (task.estimatedHours) {
         description += ` *(${task.estimatedHours}h)*`;

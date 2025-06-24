@@ -23,7 +23,7 @@ export async function seedDatabase() {
     theme: 'dark',
     defaultMode: 'assistant',
     defaultProvider: 'ollama',
-    providerConfigs: {
+    providerConfigs: JSON.stringify({
       ollama: {
         model: 'mistral',
         maxTokens: 4000,
@@ -40,7 +40,7 @@ export async function seedDatabase() {
         maxTokens: 4000,
         temperature: 0.7,
       },
-    },
+    }),
   });
 
   console.log('✅ Created user settings');
@@ -50,32 +50,32 @@ export async function seedDatabase() {
     {
       userId: demoUser.id,
       provider: 'ollama',
-      config: {
+      config: JSON.stringify({
         model: 'mistral',
         maxTokens: 4000,
         temperature: 0.7,
         baseUrl: 'http://localhost:11434',
-      },
+      }),
       isActive: true,
     },
     {
       userId: demoUser.id,
       provider: 'openai',
-      config: {
+      config: JSON.stringify({
         model: 'gpt-3.5-turbo',
         maxTokens: 4000,
         temperature: 0.7,
-      },
+      }),
       isActive: false,
     },
     {
       userId: demoUser.id,
       provider: 'anthropic',
-      config: {
+      config: JSON.stringify({
         model: 'claude-3-haiku-20240307',
         maxTokens: 4000,
         temperature: 0.7,
-      },
+      }),
       isActive: false,
     },
   ]);
@@ -90,7 +90,7 @@ export async function seedDatabase() {
       title: 'Getting Started with AI Assistant',
       mode: 'assistant',
       provider: 'ollama',
-      lastMessageAt: new Date(),
+      lastMessageAt: new Date().toISOString(),
     })
     .returning();
 
@@ -103,7 +103,7 @@ export async function seedDatabase() {
       role: 'user',
       content: 'Hello! Can you help me understand how this AI ticket automation system works?',
       mode: 'assistant',
-      metadata: {},
+      metadata: JSON.stringify({}),
     },
     {
       conversationId: demoConversation.id,
@@ -111,7 +111,7 @@ export async function seedDatabase() {
       content:
         "Hello! I'd be happy to help you understand the AI ticket automation system. This platform allows you to:\n\n1. **Assistant Mode**: Ask questions and get help with coding, architecture, and development challenges\n2. **Ticket Mode**: Describe features, bugs, or requirements, and I'll generate structured tickets with acceptance criteria and task breakdowns\n\nYou can switch between modes using the toggle in the interface. Would you like me to demonstrate either mode?",
       mode: 'assistant',
-      metadata: {},
+      metadata: JSON.stringify({}),
     },
   ]);
 

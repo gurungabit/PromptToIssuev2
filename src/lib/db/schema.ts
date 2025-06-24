@@ -1,28 +1,26 @@
-import {
-  pgTable,
-  uuid,
-  varchar,
-  text,
-  timestamp,
-  boolean,
-  jsonb,
-  index,
-} from 'drizzle-orm/pg-core';
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 import { relations } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 
 // Users table
-export const users = pgTable(
+export const users = sqliteTable(
   'users',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    email: varchar('email', { length: 255 }).notNull().unique(),
-    username: varchar('username', { length: 100 }).notNull().unique(),
-    fullName: varchar('full_name', { length: 255 }),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    email: text('email').notNull().unique(),
+    username: text('username').notNull().unique(),
+    fullName: text('full_name'),
     avatarUrl: text('avatar_url'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-    lastLogin: timestamp('last_login', { withTimezone: true }),
-    isActive: boolean('is_active').default(true).notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text('updated_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    lastLogin: text('last_login'),
+    isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
   },
   table => ({
     emailIdx: index('idx_users_email').on(table.email),
@@ -31,19 +29,25 @@ export const users = pgTable(
 );
 
 // User settings table
-export const userSettings = pgTable(
+export const userSettings = sqliteTable(
   'user_settings',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
-    theme: varchar('theme', { length: 10 }).default('dark').notNull(),
-    defaultMode: varchar('default_mode', { length: 20 }).default('assistant').notNull(),
-    defaultProvider: varchar('default_provider', { length: 50 }).default('openai').notNull(),
-    providerConfigs: jsonb('provider_configs').default({}).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    theme: text('theme').default('dark').notNull(),
+    defaultMode: text('default_mode').default('assistant').notNull(),
+    defaultProvider: text('default_provider').default('openai').notNull(),
+    providerConfigs: text('provider_configs').default('{}').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text('updated_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
   },
   table => ({
     userIdIdx: index('idx_user_settings_user_id').on(table.userId),
@@ -51,21 +55,27 @@ export const userSettings = pgTable(
 );
 
 // Conversations table
-export const conversations = pgTable(
+export const conversations = sqliteTable(
   'conversations',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
-    title: varchar('title', { length: 255 }).notNull(),
-    mode: varchar('mode', { length: 20 }).notNull(),
-    provider: varchar('provider', { length: 50 }).notNull(),
-    shareId: varchar('share_id', { length: 32 }).unique(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
-    lastMessageAt: timestamp('last_message_at', { withTimezone: true }),
-    isArchived: boolean('is_archived').default(false).notNull(),
+    title: text('title').notNull(),
+    mode: text('mode').notNull(),
+    provider: text('provider').notNull(),
+    shareId: text('share_id').unique(),
+    createdAt: text('created_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text('updated_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    lastMessageAt: text('last_message_at'),
+    isArchived: integer('is_archived', { mode: 'boolean' }).default(false).notNull(),
   },
   table => ({
     userIdIdx: index('idx_conversations_user_id').on(table.userId),
@@ -75,19 +85,25 @@ export const conversations = pgTable(
 );
 
 // Messages table
-export const messages = pgTable(
+export const messages = sqliteTable(
   'messages',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    conversationId: uuid('conversation_id')
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    conversationId: text('conversation_id')
       .references(() => conversations.id, { onDelete: 'cascade' })
       .notNull(),
-    role: varchar('role', { length: 20 }).notNull(),
+    role: text('role').notNull(),
     content: text('content').notNull(),
-    mode: varchar('mode', { length: 20 }).notNull(),
-    metadata: jsonb('metadata').default({}).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    mode: text('mode').notNull(),
+    metadata: text('metadata').default('{}').notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text('updated_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
   },
   table => ({
     conversationIdIdx: index('idx_messages_conversation_id').on(table.conversationId),
@@ -96,26 +112,32 @@ export const messages = pgTable(
 );
 
 // Tickets table
-export const tickets = pgTable(
+export const tickets = sqliteTable(
   'tickets',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    conversationId: uuid('conversation_id')
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    conversationId: text('conversation_id')
       .references(() => conversations.id, { onDelete: 'cascade' })
       .notNull(),
-    messageId: uuid('message_id').references(() => messages.id, { onDelete: 'set null' }),
-    title: varchar('title', { length: 255 }).notNull(),
+    messageId: text('message_id').references(() => messages.id, { onDelete: 'set null' }),
+    title: text('title').notNull(),
     description: text('description').notNull(),
-    type: varchar('type', { length: 50 }).notNull(),
-    priority: varchar('priority', { length: 20 }).default('medium').notNull(),
-    status: varchar('status', { length: 20 }).default('pending').notNull(),
-    acceptanceCriteria: jsonb('acceptance_criteria').default([]).notNull(),
-    tasks: jsonb('tasks').default([]).notNull(),
-    labels: jsonb('labels').default([]).notNull(),
-    externalId: varchar('external_id', { length: 255 }),
+    type: text('type').notNull(),
+    priority: text('priority').default('medium').notNull(),
+    status: text('status').default('pending').notNull(),
+    acceptanceCriteria: text('acceptance_criteria').default('[]').notNull(),
+    tasks: text('tasks').default('[]').notNull(),
+    labels: text('labels').default('[]').notNull(),
+    externalId: text('external_id'),
     externalUrl: text('external_url'),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text('updated_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
   },
   table => ({
     conversationIdIdx: index('idx_tickets_conversation_id').on(table.conversationId),
@@ -124,18 +146,24 @@ export const tickets = pgTable(
 );
 
 // Provider configurations table
-export const providerConfigs = pgTable(
+export const providerConfigs = sqliteTable(
   'provider_configs',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    userId: uuid('user_id')
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => nanoid()),
+    userId: text('user_id')
       .references(() => users.id, { onDelete: 'cascade' })
       .notNull(),
-    provider: varchar('provider', { length: 50 }).notNull(),
-    config: jsonb('config').default({}).notNull(),
-    isActive: boolean('is_active').default(true).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+    provider: text('provider').notNull(),
+    config: text('config').default('{}').notNull(),
+    isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
+    createdAt: text('created_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
+    updatedAt: text('updated_at')
+      .notNull()
+      .$defaultFn(() => new Date().toISOString()),
   },
   table => ({
     userIdIdx: index('idx_provider_configs_user_id').on(table.userId),

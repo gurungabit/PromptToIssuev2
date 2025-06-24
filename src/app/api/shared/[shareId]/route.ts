@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { conversations, messages } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { parseJsonField } from '@/lib/db/utils';
 
 export async function GET(request: NextRequest, { params }: { params: { shareId: string } }) {
   try {
@@ -34,9 +35,9 @@ export async function GET(request: NextRequest, { params }: { params: { shareId:
       id: msg.id,
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
-      timestamp: msg.createdAt ? msg.createdAt.toISOString() : new Date().toISOString(),
+      timestamp: msg.createdAt || new Date().toISOString(),
       mode: msg.mode as 'ticket' | 'assistant',
-      metadata: msg.metadata || {},
+      metadata: parseJsonField(msg.metadata, {}),
     }));
 
     return NextResponse.json({

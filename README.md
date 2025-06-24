@@ -7,7 +7,7 @@ An intelligent chatbot application that generates structured tickets from natura
 - **Dual Modes**: Assistant for general help, Ticket mode for structured ticket generation
 - **Multi-Provider AI**: Support for OpenAI, Anthropic, Google AI, and Ollama
 - **Professional UI**: ChatGPT-like interface with dark/light themes
-- **Persistent Storage**: PostgreSQL database with Drizzle ORM
+- **Persistent Storage**: SQLite database with Drizzle ORM
 - **Real-time Chat**: Smooth conversations with copy functionality
 - **Ticket Management**: Generate, preview, and manage structured tickets
 - **User Management**: User accounts, settings, and conversation history
@@ -17,7 +17,6 @@ An intelligent chatbot application that generates structured tickets from natura
 ### Prerequisites
 
 - Node.js 18+
-- Docker (for PostgreSQL)
 - Git
 
 ### 1. Clone and Install
@@ -39,8 +38,8 @@ cp .env.local.example .env.local
 Update `.env.local` with your API keys:
 
 ```env
-# Database
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/prompt_to_issue
+# Database (SQLite)
+DATABASE_URL=./database.db
 
 # AI Provider Keys
 OPENAI_API_KEY=your_openai_api_key_here
@@ -49,12 +48,6 @@ GOOGLE_API_KEY=your_google_api_key_here
 ```
 
 ### 3. Database Setup
-
-Start PostgreSQL with Docker:
-
-```bash
-npm run docker:up
-```
 
 Push schema and seed data:
 
@@ -75,11 +68,6 @@ Visit [http://localhost:3000](http://localhost:3000)
 ### Available Commands
 
 ```bash
-# Docker Management
-npm run docker:up      # Start PostgreSQL container
-npm run docker:down    # Stop PostgreSQL container
-npm run docker:logs    # View PostgreSQL logs
-
 # Database Operations
 npm run db:generate    # Generate migrations from schema
 npm run db:push        # Push schema to database
@@ -124,11 +112,13 @@ GOOGLE_API_KEY=...
 
 ### Database Connection
 
-For external PostgreSQL:
+SQLite database location:
 
 ```env
-DATABASE_URL=postgresql://username:password@host:port/database
+DATABASE_URL=./database.db
 ```
+
+The SQLite database file will be created automatically in your project root.
 
 ## 🏗️ Project Structure
 
@@ -186,60 +176,11 @@ This project uses Prettier for consistent code formatting:
 
 The project integrates Prettier with ESLint to prevent conflicts between linting and formatting rules.
 
-## 🐳 Docker Deployment
+## 🚀 Production Deployment
 
-### Development with Docker (Database Only)
+### Environment Variables
 
-The existing setup runs only PostgreSQL in Docker for development:
-
-```bash
-npm run docker:up      # Start PostgreSQL container
-npm run docker:down    # Stop PostgreSQL container
-npm run docker:logs    # View PostgreSQL logs
-```
-
-### Full Production Deployment with Docker
-
-Deploy the entire application stack (app + database) using Docker:
-
-```bash
-# 1. Create production environment file
-cp .env.production.example .env.production
-# Edit .env.production with your API keys
-
-# 2. Build and start all services
-npm run docker:prod:up
-
-# 3. View logs
-npm run docker:prod:logs
-
-# 4. Stop all services
-npm run docker:prod:down
-```
-
-### Manual Docker Build
-
-Build and run the application Docker image manually:
-
-```bash
-# Build the image
-npm run docker:build
-
-# Run the container (requires database to be running)
-npm run docker:run
-```
-
-### Docker Services (Production)
-
-The production setup includes:
-
-- **Next.js Application**: Main app running on port 3000
-- **PostgreSQL 15**: Database on port 5432
-- **pgAdmin**: Database management UI on port 5050
-
-### Environment Variables for Docker
-
-When using Docker production setup, configure these in `.env.production`:
+Configure these in `.env.production`:
 
 ```env
 # Required
@@ -247,8 +188,15 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 GOOGLE_API_KEY=...
 
-# Database (automatically configured for Docker)
-DATABASE_URL=postgresql://postgres:postgres@postgres:5432/prompt_to_issue
+# Database (SQLite)
+DATABASE_URL=./database.db
+```
+
+### Build for Production
+
+```bash
+npm run build
+npm run start
 ```
 
 ## 📝 API Documentation

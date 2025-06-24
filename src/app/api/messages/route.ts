@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { messages, conversations } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { stringifyJsonField } from '@/lib/db/utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
         role,
         content,
         mode,
-        metadata: {},
+        metadata: stringifyJsonField({}),
       })
       .returning();
 
@@ -37,8 +38,8 @@ export async function POST(request: NextRequest) {
     await db
       .update(conversations)
       .set({
-        lastMessageAt: new Date(),
-        updatedAt: new Date(),
+        lastMessageAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
       .where(eq(conversations.id, conversationId));
 

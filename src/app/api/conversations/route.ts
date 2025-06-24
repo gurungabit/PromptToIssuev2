@@ -3,16 +3,16 @@ import { db } from '@/lib/db';
 import { conversations, messages } from '@/lib/db/schema';
 import { eq, desc, count, sql } from 'drizzle-orm';
 
-// Helper function to validate UUID format
-function isValidUUID(id: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
+// Helper function to validate nanoid format (21 characters)
+function isValidId(id: string): boolean {
+  // nanoid generates 21 character IDs by default
+  return id.length === 21 && /^[A-Za-z0-9_-]+$/.test(id);
 }
 
 // Helper function to get user ID from request headers
 function getUserIdFromRequest(request: NextRequest): string | null {
   const userId = request.headers.get('x-user-id');
-  return userId && isValidUUID(userId) ? userId : null;
+  return userId && isValidId(userId) ? userId : null;
 }
 
 export async function GET(request: NextRequest) {
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
         title,
         mode,
         provider,
-        lastMessageAt: new Date(),
+        lastMessageAt: new Date().toISOString(),
       })
       .returning();
 
