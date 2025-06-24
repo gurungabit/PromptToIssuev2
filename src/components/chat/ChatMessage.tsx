@@ -1,16 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { cn, formatDate } from '@/lib/utils';
 import type { Message, Ticket } from '@/lib/schemas';
 import { User, Bot, Copy, Check, ExternalLink, Ticket as TicketIcon } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { CodeBlock } from '@/components/ui/CodeBlock';
 import { useChat } from '@/contexts/ChatContext';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark, oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface ChatMessageProps {
   message: Message & { metadata?: { tickets?: Ticket[] } };
@@ -135,7 +134,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, readOnly }) => {
     return hash.toString();
   };
 
-  const handleCodeCopy = async (code: string, blockKey: string) => {
+  const handleCodeCopy = useCallback(async (code: string, blockKey: string) => {
     try {
       await navigator.clipboard.writeText(code);
       setCopiedCodeBlocks(prev => new Set(prev).add(blockKey));
@@ -150,7 +149,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, readOnly }) => {
     } catch (err) {
       console.error('Failed to copy code:', err);
     }
-  };
+  }, []);
 
   // Custom components for react-markdown
   const markdownComponents = {
@@ -180,41 +179,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, readOnly }) => {
         const isCopied = copiedCodeBlocks.has(blockKey);
 
         return (
-          <div className="relative group">
-            <SyntaxHighlighter
-              style={isDark ? oneDark : oneLight}
-              language={language}
-              PreTag="div"
-              className="rounded-lg !mt-2 !mb-2"
-              showLineNumbers={true}
-              wrapLines={true}
-              lineProps={{
-                style: { display: 'block', width: 'fit-content' },
-              }}
-              {...props}
-            >
-              {codeContent}
-            </SyntaxHighlighter>
-            {/* Copy button for code blocks */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-8 px-2 text-xs bg-background/80 backdrop-blur-sm border border-border/30 hover:bg-background/90"
-              onClick={() => handleCodeCopy(codeContent, blockKey)}
-            >
-              {isCopied ? (
-                <>
-                  <Check className="w-3 h-3 mr-1 text-green-500" />
-                  <span className="text-green-500">Copied</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3 h-3 mr-1" />
-                  <span>Copy</span>
-                </>
-              )}
-            </Button>
-          </div>
+          <CodeBlock
+            code={codeContent}
+            language={language}
+            blockKey={blockKey}
+            isCopied={isCopied}
+            onCopy={handleCodeCopy}
+            isDark={isDark}
+          />
         );
       }
 

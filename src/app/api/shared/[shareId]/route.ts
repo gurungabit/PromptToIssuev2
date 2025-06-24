@@ -4,7 +4,10 @@ import { conversations, messages } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { parseJsonField } from '@/lib/db/utils';
 
-export async function GET(request: NextRequest, { params }: { params: { shareId: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ shareId: string }> }
+) {
   try {
     const { shareId } = await params;
 

@@ -20,7 +20,7 @@ import {
 
 interface TicketCardProps {
   ticket: Ticket;
-  onEdit?: (ticketId: string, updates: Partial<Ticket>) => void;
+  onEdit?: (ticketId: string, updates: Partial<Ticket>) => Promise<void>;
 }
 
 const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
@@ -34,15 +34,20 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
   const priorityOptions = ['low', 'medium', 'high', 'critical'] as const;
   const typeOptions = ['feature', 'bug', 'task', 'improvement', 'epic'] as const;
 
-  const handleSave = () => {
-    onEdit?.(ticket.id, editedTicket);
-    setIsEditing(false);
-    setShowSaveSuccess(true);
+  const handleSave = async () => {
+    try {
+      await onEdit?.(ticket.id, editedTicket);
+      setIsEditing(false);
+      setShowSaveSuccess(true);
 
-    // Hide success feedback after 2 seconds
-    setTimeout(() => {
-      setShowSaveSuccess(false);
-    }, 2000);
+      // Hide success feedback after 2 seconds
+      setTimeout(() => {
+        setShowSaveSuccess(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to save ticket:', error);
+      // Could add error UI feedback here if needed
+    }
   };
 
   const handleCancel = () => {

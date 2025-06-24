@@ -440,7 +440,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
                         className={cn(
                           'font-medium transition-colors',
                           currentMode === 'ticket'
-                            ? 'text-foreground font-bold text-green-500'
+                            ? 'text-foreground font-bold text-blue-500'
                             : 'text-muted-foreground'
                         )}
                       >
@@ -451,13 +451,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
                         onClick={() => setMode(currentMode === 'ticket' ? 'assistant' : 'ticket')}
                         className={cn(
                           'relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none cursor-pointer',
-                          currentMode === 'ticket' ? 'bg-green-500' : 'bg-blue-400'
+                          currentMode === 'assistant' ? 'bg-green-500' : 'bg-blue-500'
                         )}
                       >
                         <span
                           className={cn(
                             'inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
-                            currentMode === 'ticket' ? 'translate-x-5' : 'translate-x-1'
+                            currentMode === 'assistant' ? 'translate-x-5' : 'translate-x-1'
                           )}
                         />
                       </button>
@@ -466,7 +466,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
                         className={cn(
                           'font-medium transition-colors',
                           currentMode === 'assistant'
-                            ? 'text-foreground font-bold text-blue-500'
+                            ? 'text-foreground font-bold text-green-500'
                             : 'text-muted-foreground'
                         )}
                       >

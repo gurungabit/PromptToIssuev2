@@ -58,7 +58,7 @@ interface ChatContextType {
   addMessage: (content: string, role: 'user' | 'assistant', conversationId?: string) => void;
   approveTickets: () => void;
   rejectTickets: () => void;
-  editTicket: (ticketId: string, updates: Partial<Ticket>) => void;
+  editTicket: (ticketId: string, updates: Partial<Ticket>) => Promise<void>;
   setPendingTickets: (tickets: Ticket[]) => void;
 
   // Conversation Actions
@@ -618,10 +618,68 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     addMessage('Please provide more details or clarify your requirements.', 'assistant');
   };
 
-  const editTicket = (ticketId: string, updates: Partial<Ticket>) => {
+  const editTicket = async (ticketId: string, updates: Partial<Ticket>) => {
+    // Update local state immediately for responsive UI
     setPendingTickets(prev =>
       prev.map(ticket => (ticket.id === ticketId ? { ...ticket, ...updates } : ticket))
     );
+
+    // Also update the message metadata in the database if we have a current conversation
+    if (currentConversationId) {
+      try {
+        // Find the message that contains these tickets
+        const messageWithTickets = messages.find(
+          msg =>
+            msg.role === 'assistant' &&
+            (msg as Message & { metadata?: { tickets?: Ticket[] } }).metadata?.tickets &&
+            Array.isArray(
+              (msg as Message & { metadata?: { tickets?: Ticket[] } }).metadata!.tickets
+            ) &&
+            (msg as Message & { metadata?: { tickets?: Ticket[] } }).metadata!.tickets!.some(
+              (ticket: Ticket) => ticket.id === ticketId
+            )
+        );
+
+        if (messageWithTickets) {
+          // Update the tickets in the message metadata
+          const extendedMessage = messageWithTickets as Message & {
+            metadata?: { tickets?: Ticket[] };
+          };
+          const updatedTickets = extendedMessage.metadata!.tickets!.map((ticket: Ticket) =>
+            ticket.id === ticketId ? { ...ticket, ...updates } : ticket
+          );
+
+          // Update the message in the database
+          await fetch(`/api/messages/${messageWithTickets.id}`, {
+            method: 'PATCH',
+            headers: {
+              ...getAuthHeaders(),
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              metadata: { ...extendedMessage.metadata, tickets: updatedTickets },
+            }),
+          });
+
+          // Update local messages state to reflect the change
+          setMessages(prev =>
+            prev.map(msg => {
+              if (msg.id === messageWithTickets.id) {
+                const extendedMsg = msg as Message & { metadata?: { tickets?: Ticket[] } };
+                return {
+                  ...msg,
+                  metadata: { ...extendedMsg.metadata, tickets: updatedTickets },
+                } as Message & { metadata?: { tickets?: Ticket[] } };
+              }
+              return msg;
+            })
+          );
+        }
+      } catch (error) {
+        console.error('Failed to persist ticket changes:', error);
+        // Note: We don't revert the local state since the user might try to save again
+      }
+    }
   };
 
   const updateProviderConfig = (provider: LLMProvider, config: Partial<LLMConfig>) => {

@@ -9,7 +9,7 @@ export function parseJsonField<T>(value: string | null | undefined, defaultValue
   }
 }
 
-export function stringifyJsonField(value: any): string {
+export function stringifyJsonField(value: unknown): string {
   return JSON.stringify(value || {});
 }
 
@@ -23,8 +23,8 @@ export interface ProviderConfig {
 }
 
 export interface MessageMetadata {
-  tickets?: any[];
-  [key: string]: any;
+  tickets?: unknown[];
+  [key: string]: unknown;
 }
 
 export interface AcceptanceCriteria {

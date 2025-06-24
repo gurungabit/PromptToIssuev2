@@ -4,19 +4,19 @@ import { conversations } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
-// Helper function to validate UUID format
-function isValidUUID(id: string): boolean {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(id);
+// Helper function to validate nanoid format (21 characters)
+function isValidId(id: string): boolean {
+  // nanoid generates 21 character IDs by default
+  return id.length === 21 && /^[A-Za-z0-9_-]+$/.test(id);
 }
 
 // Helper function to get user ID from request headers
 function getUserIdFromRequest(request: NextRequest): string | null {
   const userId = request.headers.get('x-user-id');
-  return userId && isValidUUID(userId) ? userId : null;
+  return userId && isValidId(userId) ? userId : null;
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const conversationId = id;
@@ -25,8 +25,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
     }
 
-    // Validate UUID format
-    if (!isValidUUID(conversationId)) {
+    // Validate ID format
+    if (!isValidId(conversationId)) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       .update(conversations)
       .set({
         shareId,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       })
       .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
       .returning();
@@ -84,7 +84,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const { id } = await params;
     const conversationId = id;
@@ -93,8 +96,8 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
     }
 
-    // Validate UUID format
-    if (!isValidUUID(conversationId)) {
+    // Validate ID format
+    if (!isValidId(conversationId)) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
@@ -109,7 +112,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       .update(conversations)
       .set({
         shareId: null,
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
       })
       .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
       .returning();
