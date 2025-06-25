@@ -9,10 +9,9 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "dynamodb:start": "node scripts/start-dynamodb.js",
-    "dynamodb:setup": "node scripts/setup-dynamodb-tables.js",
-    "db:seed": "tsx src/lib/db/seed.ts",
-    "db:setup": "npm run dynamodb:setup && npm run db:seed",
+    "db:up": "docker-compose -f docker-compose.dynamodb.yml up",
+    "db:down": "docker-compose -f docker-compose.dynamodb.yml down",
+    "db:setup": "node scripts/setup-dynamodb-tables.js",
     "upackage": "npx npm-check-updates -u && npm install"
   },
   "dependencies": {
