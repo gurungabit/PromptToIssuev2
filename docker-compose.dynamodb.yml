@@ -5,11 +5,6 @@ services:
     image: amazon/dynamodb-local:latest
     ports:
       - "8000:8000"
-    volumes:
-      # Optional: Uncomment for persistent data storage
-      # - ./dynamodb-data:/home/dynamodblocal/data
-    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
-    # For persistent storage, use this command instead:
-    # command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
+    volumes: []
     container_name: dynamodb-local
     restart: unless-stopped 
