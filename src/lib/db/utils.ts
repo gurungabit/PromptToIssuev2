@@ -1,39 +1,48 @@
-// Utility functions for handling JSON data with SQLite
+// Utility functions for handling JSON fields in DynamoDB
 
-export function parseJsonField<T>(value: string | null | undefined, defaultValue: T): T {
-  if (!value) return defaultValue;
+/**
+ * Parse a JSON field from DynamoDB, with fallback to default value
+ */
+export function parseJsonField<T>(jsonString: string | undefined | null, defaultValue: T): T {
+  if (!jsonString) return defaultValue;
+  
   try {
-    return JSON.parse(value) as T;
-  } catch {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error('Failed to parse JSON field:', error);
     return defaultValue;
   }
 }
 
+/**
+ * Stringify a value for storage in DynamoDB JSON field
+ */
 export function stringifyJsonField(value: unknown): string {
-  return JSON.stringify(value || {});
+  try {
+    return JSON.stringify(value);
+  } catch (error) {
+    console.error('Failed to stringify JSON field:', error);
+    return '{}';
+  }
 }
 
-// Helper types for parsed data
-export interface ProviderConfig {
-  model?: string;
-  maxTokens?: number;
-  temperature?: number;
-  baseUrl?: string;
-  apiKey?: string;
+/**
+ * Helper to safely get a string value from environment variables
+ */
+export function getEnvVar(key: string, defaultValue: string = ''): string {
+  return process.env[key] ?? defaultValue;
 }
 
-export interface MessageMetadata {
-  tickets?: unknown[];
-  [key: string]: unknown;
+/**
+ * Helper to check if we're in development mode
+ */
+export function isDevelopment(): boolean {
+  return process.env.NODE_ENV === 'development';
 }
 
-export interface AcceptanceCriteria {
-  id: string;
-  description: string;
-}
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-}
+/**
+ * Helper to get the current timestamp in ISO format
+ */
+export function getCurrentTimestamp(): string {
+  return new Date().toISOString();
+} 

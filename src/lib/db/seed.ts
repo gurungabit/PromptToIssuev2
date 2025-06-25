@@ -1,134 +1,125 @@
-import { db } from './index';
-import { users, userSettings, conversations, messages, providerConfigs } from './schema';
+import { 
+  UserRepository, 
+  ConversationRepository, 
+  MessageRepository,
+  ProviderConfigRepository 
+} from './repositories';
+import { stringifyJsonField } from './utils';
 
 export async function seedDatabase() {
-  console.log('🌱 Seeding database...');
+  console.log('🌱 Seeding DynamoDB database...');
 
-  // Create a demo user
-  const [demoUser] = await db
-    .insert(users)
-    .values({
+  const userRepo = new UserRepository();
+  const conversationRepo = new ConversationRepository();
+  const messageRepo = new MessageRepository();
+  const providerConfigRepo = new ProviderConfigRepository();
+
+  try {
+    // Create a demo user
+    const demoUser = await userRepo.createUser({
       email: 'demo@example.com',
-      username: 'demo_user',
+      username: 'demo',
       fullName: 'Demo User',
       isActive: true,
-    })
-    .returning();
+    });
 
-  console.log('✅ Created demo user:', demoUser.id);
+    console.log('✅ Created demo user:', demoUser.id);
 
-  // Create user settings
-  await db.insert(userSettings).values({
-    userId: demoUser.id,
-    theme: 'dark',
-    defaultMode: 'assistant',
-    defaultProvider: 'ollama',
-    providerConfigs: JSON.stringify({
-      ollama: {
-        model: 'mistral',
-        maxTokens: 4000,
-        temperature: 0.7,
-        baseUrl: 'http://localhost:11434',
-      },
-      openai: {
-        model: 'gpt-3.5-turbo',
-        maxTokens: 4000,
-        temperature: 0.7,
-      },
-      anthropic: {
-        model: 'claude-3-haiku-20240307',
-        maxTokens: 4000,
-        temperature: 0.7,
-      },
-    }),
-  });
+    // Create user settings
+    await userRepo.createUserSettings({
+      userId: demoUser.id,
+      theme: 'dark',
+      defaultMode: 'assistant',
+      defaultProvider: 'ollama',
+      providerConfigs: stringifyJsonField({
+        ollama: { model: 'llama2' },
+        openai: { model: 'gpt-3.5-turbo' },
+      }),
+    });
 
-  console.log('✅ Created user settings');
+    console.log('✅ Created user settings for:', demoUser.id);
 
-  // Create provider configs
-  await db.insert(providerConfigs).values([
-    {
+    // Create provider configurations
+    await providerConfigRepo.createProviderConfig({
       userId: demoUser.id,
       provider: 'ollama',
-      config: JSON.stringify({
-        model: 'mistral',
-        maxTokens: 4000,
-        temperature: 0.7,
+      config: stringifyJsonField({
         baseUrl: 'http://localhost:11434',
+        model: 'llama2',
+        temperature: 0.7,
       }),
       isActive: true,
-    },
-    {
+    });
+
+    await providerConfigRepo.createProviderConfig({
       userId: demoUser.id,
       provider: 'openai',
-      config: JSON.stringify({
+      config: stringifyJsonField({
         model: 'gpt-3.5-turbo',
-        maxTokens: 4000,
         temperature: 0.7,
+        maxTokens: 2000,
       }),
-      isActive: false,
-    },
-    {
-      userId: demoUser.id,
-      provider: 'anthropic',
-      config: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
-        maxTokens: 4000,
-        temperature: 0.7,
-      }),
-      isActive: false,
-    },
-  ]);
+      isActive: false, // Not active by default since it requires API key
+    });
 
-  console.log('✅ Created provider configs');
+    console.log('✅ Created provider configs');
 
-  // Create a demo conversation
-  const [demoConversation] = await db
-    .insert(conversations)
-    .values({
+    // Create a demo conversation
+    const demoConversation = await conversationRepo.createConversation({
       userId: demoUser.id,
       title: 'Getting Started with AI Assistant',
       mode: 'assistant',
       provider: 'ollama',
-      lastMessageAt: new Date().toISOString(),
-    })
-    .returning();
+      isArchived: false,
+    });
 
-  console.log('✅ Created demo conversation:', demoConversation.id);
+    console.log('✅ Created demo conversation:', demoConversation.id);
 
-  // Create demo messages
-  await db.insert(messages).values([
-    {
+    // Create demo messages
+    await messageRepo.createMessage({
       conversationId: demoConversation.id,
       role: 'user',
       content: 'Hello! Can you help me understand how this AI ticket automation system works?',
       mode: 'assistant',
-      metadata: JSON.stringify({}),
-    },
-    {
+      metadata: stringifyJsonField({}),
+    });
+
+    const assistantMessage = await messageRepo.createMessage({
       conversationId: demoConversation.id,
       role: 'assistant',
-      content:
-        "Hello! I'd be happy to help you understand the AI ticket automation system. This platform allows you to:\n\n1. **Assistant Mode**: Ask questions and get help with coding, architecture, and development challenges\n2. **Ticket Mode**: Describe features, bugs, or requirements, and I'll generate structured tickets with acceptance criteria and task breakdowns\n\nYou can switch between modes using the toggle in the interface. Would you like me to demonstrate either mode?",
+      content: "Hello! I'd be happy to help you understand the AI ticket automation system. This platform allows you to:\n\n1. **Assistant Mode**: Ask questions and get help with coding, architecture, and development challenges\n2. **Ticket Mode**: Describe features, bugs, or requirements, and I'll generate structured tickets with acceptance criteria and task breakdowns\n\nYou can switch between modes using the toggle in the interface. Would you like me to demonstrate either mode?",
       mode: 'assistant',
-      metadata: JSON.stringify({}),
-    },
-  ]);
+      metadata: stringifyJsonField({}),
+    });
 
-  console.log('✅ Created demo messages');
+    // Update conversation with last message timestamp
+    await conversationRepo.updateConversation(demoConversation.id, demoUser.id, {
+      lastMessageAt: assistantMessage.createdAt,
+    });
 
-  console.log('🎉 Database seeded successfully!');
+    console.log('✅ Created demo messages');
+    console.log('🎉 Database seeded successfully!');
+    console.log('📋 Summary:');
+    console.log(`   - User: ${demoUser.email} (${demoUser.id})`);
+    console.log(`   - Conversation: ${demoConversation.title} (${demoConversation.id})`);
+    console.log(`   - Messages: 2`);
+    console.log(`   - Provider Configs: 2`);
+
+  } catch (error) {
+    console.error('❌ Error seeding database:', error);
+    throw error;
+  }
 }
 
-// Run if this file is executed directly
+// Run seeding if this file is executed directly
 if (require.main === module) {
   seedDatabase()
     .then(() => {
-      console.log('Seeding completed');
+      console.log('✅ Seeding completed successfully');
       process.exit(0);
     })
-    .catch(error => {
-      console.error('Seeding failed:', error);
+    .catch((error) => {
+      console.error('💥 Seeding failed:', error);
       process.exit(1);
     });
 }

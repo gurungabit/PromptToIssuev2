@@ -383,9 +383,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
 
         const response = await fetch('/api/conversations', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             userId,
             title,
@@ -410,7 +408,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         throw error;
       }
     },
-    [currentMode, currentProvider]
+    [currentMode, currentProvider, getAuthHeaders]
   );
 
   const sendMessage = useCallback(
@@ -445,9 +443,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         // Add minimum delay to ensure loading indicator is visible
         const apiCallPromise = fetch('/api/chat', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             message: content,
             mode: currentMode,
@@ -520,6 +516,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       createNewConversation,
       addMessage,
       addMessageToUIOnly,
+      getAuthHeaders,
     ]
   );
 
@@ -657,6 +654,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
+              conversationId: currentConversationId,
               metadata: { ...extendedMessage.metadata, tickets: updatedTickets },
             }),
           });

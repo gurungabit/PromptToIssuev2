@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { messages } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { MessageRepository } from '@/lib/db/repositories';
 import { stringifyJsonField } from '@/lib/db/utils';
 
 // Helper function to validate nanoid format (21 characters)
@@ -24,21 +22,22 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Message not found' }, { status: 404 });
     }
 
-    const { metadata } = await request.json();
+    const { metadata, conversationId } = await request.json();
 
     if (!metadata) {
       return NextResponse.json({ error: 'Metadata is required' }, { status: 400 });
     }
 
+    if (!conversationId) {
+      return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
+    }
+
+    const messageRepo = new MessageRepository();
+
     // Update the message metadata
-    const [updatedMessage] = await db
-      .update(messages)
-      .set({
-        metadata: stringifyJsonField(metadata),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(messages.id, messageId))
-      .returning();
+    const updatedMessage = await messageRepo.updateMessage(messageId, conversationId, {
+      metadata: stringifyJsonField(metadata),
+    });
 
     if (!updatedMessage) {
       return NextResponse.json({ error: 'Message not found' }, { status: 404 });

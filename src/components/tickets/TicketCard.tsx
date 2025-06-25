@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Dropdown } from '@/components/ui/Dropdown';
 import type { Ticket } from '@/lib/schemas';
 import { cn } from '@/lib/utils';
 import {
@@ -33,6 +34,13 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
 
   const priorityOptions = ['low', 'medium', 'high', 'critical'] as const;
   const typeOptions = ['feature', 'bug', 'task', 'improvement', 'epic'] as const;
+
+  const typeDropdownOptions = typeOptions.map(type => ({ value: type, label: type }));
+  const priorityDropdownOptions = priorityOptions.map(priority => ({
+    value: priority,
+    label: priority,
+    icon: <AlertTriangle className="w-3 h-3" />
+  }));
 
   const handleSave = async () => {
     try {
@@ -174,22 +182,12 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
 
           <div className="flex items-center gap-2 flex-wrap">
             {isEditing ? (
-              <select
+              <Dropdown
                 value={editedTicket.type}
-                onChange={e =>
-                  setEditedTicket(prev => ({
-                    ...prev,
-                    type: e.target.value as (typeof typeOptions)[number],
-                  }))
-                }
-                className="text-xs px-2 py-1 rounded-full font-medium border bg-background cursor-pointer"
-              >
-                {typeOptions.map(type => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
+                options={typeDropdownOptions}
+                onChange={(value) => setEditedTicket(prev => ({ ...prev, type: value as (typeof typeOptions)[number] }))}
+                size="sm"
+              />
             ) : (
               <span
                 className={cn(
@@ -202,22 +200,13 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
             )}
 
             {isEditing ? (
-              <select
+              <Dropdown
                 value={editedTicket.priority}
-                onChange={e =>
-                  setEditedTicket(prev => ({
-                    ...prev,
-                    priority: e.target.value as (typeof priorityOptions)[number],
-                  }))
-                }
-                className="text-xs px-2 py-1 rounded-full font-medium border bg-background cursor-pointer flex items-center gap-1"
-              >
-                {priorityOptions.map(priority => (
-                  <option key={priority} value={priority}>
-                    {priority}
-                  </option>
-                ))}
-              </select>
+                options={priorityDropdownOptions}
+                onChange={(value) => setEditedTicket(prev => ({ ...prev, priority: value as (typeof priorityOptions)[number] }))}
+                size="sm"
+                icon={<AlertTriangle className="w-3 h-3" />}
+              />
             ) : (
               <span
                 className={cn(
@@ -242,10 +231,19 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
         <div className="flex items-center gap-2 flex-shrink-0">
           {isEditing ? (
             <>
-              <Button size="sm" onClick={handleSave} className="cursor-pointer">
+              <Button
+                size="sm"
+                onClick={handleSave}
+                className="cursor-pointer hover:bg-primary/90 hover:shadow-lg transition-all duration-200 hover:scale-105"
+              >
                 <Save className="w-4 h-4" />
               </Button>
-              <Button size="sm" variant="outline" onClick={handleCancel} className="cursor-pointer">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleCancel}
+                className="cursor-pointer hover:bg-accent hover:border-destructive/40 hover:text-destructive hover:shadow-md transition-all duration-200 hover:scale-105"
+              >
                 <X className="w-4 h-4" />
               </Button>
             </>

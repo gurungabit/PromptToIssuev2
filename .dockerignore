@@ -98,5 +98,5 @@ README*
 docs/
 documentation/
 
-# Drizzle
-drizzle/ 
+# DynamoDB Local data
+dynamodb-local/ 

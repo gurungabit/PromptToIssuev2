@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { users, userSettings } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { UserRepository } from '@/lib/db/repositories';
 import { stringifyJsonField } from '@/lib/db/utils';
 
 export async function POST(request: NextRequest) {
@@ -12,45 +10,38 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ message: 'Email and username are required' }, { status: 400 });
     }
 
-    // Try to find existing user by email or username
-    const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const userRepo = new UserRepository();
+
+    // Try to find existing user by email
+    const existingUser = await userRepo.getUserByEmail(email);
 
     let user;
 
-    if (existingUser.length > 0) {
+    if (existingUser) {
       // Check if the username is the same
-      if (existingUser[0].username !== username) {
+      if (existingUser.username !== username) {
         return NextResponse.json(
           { message: 'Login failed, please check your username and email' },
           { status: 400 }
         );
       }
       // User exists, update last login
-      user = existingUser[0];
-      await db
-        .update(users)
-        .set({
-          lastLogin: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(users.id, user.id));
+      user = existingUser;
+      await userRepo.updateUser(user.id, {
+        lastLogin: new Date().toISOString(),
+      });
     } else {
       // Create new user
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          email,
-          username,
-          fullName: username, // Default to username
-          lastLogin: new Date().toISOString(),
-          isActive: true,
-        })
-        .returning();
-
-      user = newUser;
+      user = await userRepo.createUser({
+        email,
+        username,
+        fullName: username, // Default to username
+        lastLogin: new Date().toISOString(),
+        isActive: true,
+      });
 
       // Create default user settings
-      await db.insert(userSettings).values({
+      await userRepo.createUserSettings({
         userId: user.id,
         theme: 'dark',
         defaultMode: 'ticket',
@@ -88,7 +79,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user,
-      message: existingUser.length > 0 ? 'Login successful' : 'Account created and logged in',
+      message: existingUser ? 'Login successful' : 'Account created and logged in',
     });
   } catch (error) {
     console.error('Login error:', error);

@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { conversations } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import { ConversationRepository } from '@/lib/db/repositories';
 
 // Helper function to validate nanoid format (21 characters)
 function isValidId(id: string): boolean {
@@ -36,12 +33,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const conversationRepo = new ConversationRepository();
+
     // Check if conversation exists and belongs to user
-    const [conversation] = await db
-      .select()
-      .from(conversations)
-      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
-      .limit(1);
+    const conversation = await conversationRepo.getConversationById(conversationId, userId);
 
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
@@ -56,27 +51,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
     }
 
-    // Generate new share ID
-    const shareId = nanoid(12); // Short, URL-safe unique ID
+    // Generate new share ID and share the conversation
+    const shareId = await conversationRepo.shareConversation(conversationId, userId);
 
-    // Update conversation with share ID
-    const [updatedConversation] = await db
-      .update(conversations)
-      .set({
-        shareId,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
-      .returning();
-
-    if (!updatedConversation) {
+    if (!shareId) {
       return NextResponse.json({ error: 'Failed to create share link' }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      shareId: updatedConversation.shareId,
-      shareUrl: `${request.nextUrl.origin}/shared/${updatedConversation.shareId}`,
+      shareId,
+      shareUrl: `${request.nextUrl.origin}/shared/${shareId}`,
     });
   } catch (error) {
     console.error('Error creating share link:', error);
@@ -107,17 +92,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Remove share ID from conversation
-    const [updatedConversation] = await db
-      .update(conversations)
-      .set({
-        shareId: null,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
-      .returning();
+    const conversationRepo = new ConversationRepository();
 
-    if (!updatedConversation) {
+    // Remove share from conversation
+    const success = await conversationRepo.unshareConversation(conversationId, userId);
+
+    if (!success) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
