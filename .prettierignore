@@ -109,5 +109,5 @@ docs/
 # Migration files (sometimes auto-generated)
 migrations/
 
-# Drizzle generated files
-drizzle/ 
+# DynamoDB Local data
+dynamodb-local/ 

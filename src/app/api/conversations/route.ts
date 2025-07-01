@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { conversations, messages } from '@/lib/db/schema';
-import { eq, desc, count, sql } from 'drizzle-orm';
+import { ConversationRepository, MessageRepository } from '@/lib/db';
 
 // Helper function to validate nanoid format (21 characters)
 function isValidId(id: string): boolean {
@@ -23,46 +21,30 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Note: We ignore the userId query parameter and use the authenticated user ID
-    // This prevents users from accessing other users' conversations
+    const conversationRepo = new ConversationRepository();
+    const messageRepo = new MessageRepository();
 
-    // Get conversations with message counts and last message
-    const userConversations = await db
-      .select({
-        id: conversations.id,
-        title: conversations.title,
-        mode: conversations.mode,
-        provider: conversations.provider,
-        createdAt: conversations.createdAt,
-        updatedAt: conversations.updatedAt,
-        lastMessageAt: conversations.lastMessageAt,
-        isArchived: conversations.isArchived,
-        messageCount: count(messages.id),
-        lastMessage: sql<string>`(
-          SELECT content 
-          FROM ${messages} 
-          WHERE ${messages.conversationId} = ${conversations.id} 
-          ORDER BY ${messages.createdAt} DESC 
-          LIMIT 1
-        )`,
+    // Get user's conversations
+    const userConversations = await conversationRepo.getUserConversations(userId);
+
+    // Transform the data to match the expected format with message counts
+    const transformedConversations = await Promise.all(
+      userConversations.map(async (conv) => {
+        const messageCount = await messageRepo.getMessageCount(conv.id);
+        const lastMessage = await messageRepo.getLastMessage(conv.id);
+        
+        return {
+          id: conv.id,
+          title: conv.title,
+          lastMessage: lastMessage?.content || 'No messages yet',
+          timestamp: conv.lastMessageAt || conv.createdAt,
+          mode: conv.mode as 'ticket' | 'assistant',
+          messageCount,
+          provider: conv.provider,
+          isArchived: conv.isArchived,
+        };
       })
-      .from(conversations)
-      .leftJoin(messages, eq(conversations.id, messages.conversationId))
-      .where(eq(conversations.userId, userId))
-      .groupBy(conversations.id)
-      .orderBy(desc(conversations.lastMessageAt));
-
-    // Transform the data to match the expected format
-    const transformedConversations = userConversations.map(conv => ({
-      id: conv.id,
-      title: conv.title,
-      lastMessage: conv.lastMessage || 'No messages yet',
-      timestamp: conv.lastMessageAt || conv.createdAt,
-      mode: conv.mode as 'ticket' | 'assistant',
-      messageCount: Number(conv.messageCount),
-      provider: conv.provider,
-      isArchived: conv.isArchived,
-    }));
+    );
 
     return NextResponse.json({
       success: true,
@@ -82,16 +64,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const [newConversation] = await db
-      .insert(conversations)
-      .values({
-        userId,
-        title,
-        mode,
-        provider,
-        lastMessageAt: new Date().toISOString(),
-      })
-      .returning();
+    const conversationRepo = new ConversationRepository();
+    const newConversation = await conversationRepo.createConversation({
+      userId,
+      title,
+      mode,
+      provider,
+      lastMessageAt: new Date().toISOString(),
+      isArchived: false
+    });
 
     return NextResponse.json({
       success: true,

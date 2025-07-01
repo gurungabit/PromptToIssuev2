@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { conversations, messages } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { ConversationRepository, MessageRepository } from '@/lib/db/repositories';
 import { parseJsonField } from '@/lib/db/utils';
 
 // Helper function to validate nanoid format (21 characters)
@@ -36,23 +34,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const conversationRepo = new ConversationRepository();
+    const messageRepo = new MessageRepository();
+
     // Get conversation with user validation
-    const [conversation] = await db
-      .select()
-      .from(conversations)
-      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
-      .limit(1);
+    const conversation = await conversationRepo.getConversationById(conversationId, userId);
 
     if (!conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
     // Get messages for this conversation
-    const conversationMessages = await db
-      .select()
-      .from(messages)
-      .where(eq(messages.conversationId, conversationId))
-      .orderBy(messages.createdAt);
+    const conversationMessages = await messageRepo.getConversationMessages(conversationId);
 
     // Transform messages to match the expected format
     const transformedMessages = conversationMessages.map(msg => ({
@@ -107,14 +100,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const [updatedConversation] = await db
-      .update(conversations)
-      .set({
-        title,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
-      .returning();
+    const conversationRepo = new ConversationRepository();
+
+    const updatedConversation = await conversationRepo.updateConversation(conversationId, userId, {
+      title,
+    });
 
     if (!updatedConversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
@@ -153,13 +143,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Delete conversation (messages will be cascade deleted)
-    const deletedConversation = await db
-      .delete(conversations)
-      .where(and(eq(conversations.id, conversationId), eq(conversations.userId, userId)))
-      .returning();
+    const conversationRepo = new ConversationRepository();
 
-    if (deletedConversation.length === 0) {
+    // Delete conversation (messages will be cascade deleted by the repository)
+    const deleted = await conversationRepo.deleteConversation(conversationId, userId);
+
+    if (!deleted) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 

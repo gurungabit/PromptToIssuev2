@@ -45,3 +45,6 @@ next-env.d.ts
 *.db-journal
 database.db
 database.db-journal
+
+# DynamoDB Local data
+dynamodb-data/

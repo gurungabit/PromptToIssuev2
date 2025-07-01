@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { conversations, messages } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { ConversationRepository, MessageRepository } from '@/lib/db/repositories';
 import { parseJsonField } from '@/lib/db/utils';
 
 export async function GET(
@@ -15,23 +13,18 @@ export async function GET(
       return NextResponse.json({ error: 'Share ID is required' }, { status: 400 });
     }
 
+    const conversationRepo = new ConversationRepository();
+    const messageRepo = new MessageRepository();
+
     // Get conversation by share ID (no user authentication required)
-    const [conversation] = await db
-      .select()
-      .from(conversations)
-      .where(eq(conversations.shareId, shareId))
-      .limit(1);
+    const conversation = await conversationRepo.getConversationByShareId(shareId);
 
     if (!conversation) {
       return NextResponse.json({ error: 'Shared conversation not found' }, { status: 404 });
     }
 
     // Get messages for this conversation
-    const conversationMessages = await db
-      .select()
-      .from(messages)
-      .where(eq(messages.conversationId, conversation.id))
-      .orderBy(messages.createdAt);
+    const conversationMessages = await messageRepo.getConversationMessages(conversation.id);
 
     // Transform messages to match the expected format
     const transformedMessages = conversationMessages.map(msg => ({

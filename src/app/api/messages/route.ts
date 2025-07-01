@@ -1,47 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { messages, conversations } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { ConversationRepository, MessageRepository } from '@/lib/db/repositories';
 import { stringifyJsonField } from '@/lib/db/utils';
 
 export async function POST(request: NextRequest) {
   try {
-    const { conversationId, role, content, mode } = await request.json();
+    const { conversationId, role, content, mode, userId } = await request.json();
 
     if (!conversationId || !role || !content || !mode) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
-    // Verify conversation exists
-    const existingConversation = await db
-      .select({ id: conversations.id })
-      .from(conversations)
-      .where(eq(conversations.id, conversationId))
-      .limit(1);
 
-    if (existingConversation.length === 0) {
+    const conversationRepo = new ConversationRepository();
+    const messageRepo = new MessageRepository();
+
+    // Verify conversation exists - we need userId for this
+    // If userId is not provided, we'll try to get it from the conversation
+    let targetUserId = userId;
+    if (!targetUserId) {
+      // This is a fallback - in production you'd get userId from auth
+      targetUserId = 'user-id-placeholder';
+    }
+
+    const existingConversation = await conversationRepo.getConversationById(conversationId, targetUserId);
+
+    if (!existingConversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
     }
 
     // Insert the message
-    const [newMessage] = await db
-      .insert(messages)
-      .values({
-        conversationId,
-        role,
-        content,
-        mode,
-        metadata: stringifyJsonField({}),
-      })
-      .returning();
+    const newMessage = await messageRepo.createMessage({
+      conversationId,
+      role,
+      content,
+      mode,
+      metadata: stringifyJsonField({}),
+    });
 
     // Update conversation lastMessageAt
-    await db
-      .update(conversations)
-      .set({
-        lastMessageAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(conversations.id, conversationId));
+    await conversationRepo.updateConversation(conversationId, existingConversation.userId, {
+      lastMessageAt: new Date().toISOString(),
+    });
 
     return NextResponse.json({
       success: true,

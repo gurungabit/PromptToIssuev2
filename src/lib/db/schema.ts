@@ -1,243 +1,222 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
-import { relations } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
-// Users table
-export const users = sqliteTable(
-  'users',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => nanoid()),
-    email: text('email').notNull().unique(),
-    username: text('username').notNull().unique(),
-    fullName: text('full_name'),
-    avatarUrl: text('avatar_url'),
-    createdAt: text('created_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text('updated_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    lastLogin: text('last_login'),
-    isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
-  },
-  table => ({
-    emailIdx: index('idx_users_email').on(table.email),
-    usernameIdx: index('idx_users_username').on(table.username),
-  })
-);
+// Base DynamoDB Item interface
+export interface DynamoDBItem {
+  PK: string;           // Partition Key
+  SK: string;           // Sort Key
+  type: string;         // Item type discriminator
+  GSI1PK?: string;      // Global Secondary Index 1 Partition Key
+  GSI1SK?: string;      // Global Secondary Index 1 Sort Key
+  createdAt: string;
+  updatedAt: string;
+}
 
-// User settings table
-export const userSettings = sqliteTable(
-  'user_settings',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => nanoid()),
-    userId: text('user_id')
-      .references(() => users.id, { onDelete: 'cascade' })
-      .notNull(),
-    theme: text('theme').default('dark').notNull(),
-    defaultMode: text('default_mode').default('assistant').notNull(),
-    defaultProvider: text('default_provider').default('openai').notNull(),
-    providerConfigs: text('provider_configs').default('{}').notNull(),
-    createdAt: text('created_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text('updated_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-  },
-  table => ({
-    userIdIdx: index('idx_user_settings_user_id').on(table.userId),
-  })
-);
+// User Profile
+export interface User extends DynamoDBItem {
+  type: 'USER';
+  id: string;
+  email: string;
+  username: string;
+  fullName?: string;
+  avatarUrl?: string;
+  lastLogin?: string;
+  isActive: boolean;
+}
 
-// Conversations table
-export const conversations = sqliteTable(
-  'conversations',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => nanoid()),
-    userId: text('user_id')
-      .references(() => users.id, { onDelete: 'cascade' })
-      .notNull(),
-    title: text('title').notNull(),
-    mode: text('mode').notNull(),
-    provider: text('provider').notNull(),
-    shareId: text('share_id').unique(),
-    createdAt: text('created_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text('updated_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    lastMessageAt: text('last_message_at'),
-    isArchived: integer('is_archived', { mode: 'boolean' }).default(false).notNull(),
-  },
-  table => ({
-    userIdIdx: index('idx_conversations_user_id').on(table.userId),
-    updatedAtIdx: index('idx_conversations_updated_at').on(table.updatedAt),
-    shareIdIdx: index('idx_conversations_share_id').on(table.shareId),
-  })
-);
+// User Settings
+export interface UserSettings extends DynamoDBItem {
+  type: 'USER_SETTINGS';
+  userId: string;
+  theme: string;
+  defaultMode: string;
+  defaultProvider: string;
+  providerConfigs: string; // JSON string
+}
 
-// Messages table
-export const messages = sqliteTable(
-  'messages',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => nanoid()),
-    conversationId: text('conversation_id')
-      .references(() => conversations.id, { onDelete: 'cascade' })
-      .notNull(),
-    role: text('role').notNull(),
-    content: text('content').notNull(),
-    mode: text('mode').notNull(),
-    metadata: text('metadata').default('{}').notNull(),
-    createdAt: text('created_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text('updated_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-  },
-  table => ({
-    conversationIdIdx: index('idx_messages_conversation_id').on(table.conversationId),
-    createdAtIdx: index('idx_messages_created_at').on(table.createdAt),
-  })
-);
+// Conversation
+export interface Conversation extends DynamoDBItem {
+  type: 'CONVERSATION';
+  id: string;
+  userId: string;
+  title: string;
+  mode: string;
+  provider: string;
+  shareId?: string;
+  lastMessageAt?: string;
+  isArchived: boolean;
+}
 
-// Tickets table
-export const tickets = sqliteTable(
-  'tickets',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => nanoid()),
-    conversationId: text('conversation_id')
-      .references(() => conversations.id, { onDelete: 'cascade' })
-      .notNull(),
-    messageId: text('message_id').references(() => messages.id, { onDelete: 'set null' }),
-    title: text('title').notNull(),
-    description: text('description').notNull(),
-    type: text('type').notNull(),
-    priority: text('priority').default('medium').notNull(),
-    status: text('status').default('pending').notNull(),
-    acceptanceCriteria: text('acceptance_criteria').default('[]').notNull(),
-    tasks: text('tasks').default('[]').notNull(),
-    labels: text('labels').default('[]').notNull(),
-    externalId: text('external_id'),
-    externalUrl: text('external_url'),
-    createdAt: text('created_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text('updated_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-  },
-  table => ({
-    conversationIdIdx: index('idx_tickets_conversation_id').on(table.conversationId),
-    statusIdx: index('idx_tickets_status').on(table.status),
-  })
-);
+// Message
+export interface Message extends DynamoDBItem {
+  type: 'MESSAGE';
+  id: string;
+  conversationId: string;
+  role: string;
+  content: string;
+  mode: string;
+  metadata: string; // JSON string
+}
 
-// Provider configurations table
-export const providerConfigs = sqliteTable(
-  'provider_configs',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => nanoid()),
-    userId: text('user_id')
-      .references(() => users.id, { onDelete: 'cascade' })
-      .notNull(),
-    provider: text('provider').notNull(),
-    config: text('config').default('{}').notNull(),
-    isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
-    createdAt: text('created_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-    updatedAt: text('updated_at')
-      .notNull()
-      .$defaultFn(() => new Date().toISOString()),
-  },
-  table => ({
-    userIdIdx: index('idx_provider_configs_user_id').on(table.userId),
-    userProviderIdx: index('idx_provider_configs_user_provider').on(table.userId, table.provider),
-  })
-);
+// Ticket
+export interface Ticket extends DynamoDBItem {
+  type: 'TICKET';
+  id: string;
+  conversationId: string;
+  messageId?: string;
+  title: string;
+  description: string;
+  ticketType: string; // renamed from 'type' to avoid conflict
+  priority: string;
+  status: string;
+  acceptanceCriteria: string; // JSON string
+  tasks: string; // JSON string
+  labels: string; // JSON string
+  externalId?: string;
+  externalUrl?: string;
+}
 
-// Relations
-export const usersRelations = relations(users, ({ one, many }) => ({
-  settings: one(userSettings, {
-    fields: [users.id],
-    references: [userSettings.userId],
-  }),
-  conversations: many(conversations),
-  providerConfigs: many(providerConfigs),
-}));
+// Provider Configuration
+export interface ProviderConfig extends DynamoDBItem {
+  type: 'PROVIDER_CONFIG';
+  id: string;
+  userId: string;
+  provider: string;
+  config: string; // JSON string
+  isActive: boolean;
+}
 
-export const userSettingsRelations = relations(userSettings, ({ one }) => ({
-  user: one(users, {
-    fields: [userSettings.userId],
-    references: [users.id],
-  }),
-}));
+// Insert types (for creating new items)
+export type NewUser = Omit<User, 'PK' | 'SK' | 'type' | 'id' | 'createdAt' | 'updatedAt'>;
+export type NewUserSettings = Omit<UserSettings, 'PK' | 'SK' | 'type' | 'createdAt' | 'updatedAt'>;
+export type NewConversation = Omit<Conversation, 'PK' | 'SK' | 'type' | 'id' | 'createdAt' | 'updatedAt'>;
+export type NewMessage = Omit<Message, 'PK' | 'SK' | 'type' | 'id' | 'createdAt' | 'updatedAt'>;
+export type NewTicket = Omit<Ticket, 'PK' | 'SK' | 'type' | 'id' | 'createdAt' | 'updatedAt'>;
+export type NewProviderConfig = Omit<ProviderConfig, 'PK' | 'SK' | 'type' | 'id' | 'createdAt' | 'updatedAt'>;
 
-export const conversationsRelations = relations(conversations, ({ one, many }) => ({
-  user: one(users, {
-    fields: [conversations.userId],
-    references: [users.id],
-  }),
-  messages: many(messages),
-  tickets: many(tickets),
-}));
+// Key generation utilities
+export const createUserKeys = (userId: string) => ({
+  PK: `USER#${userId}`,
+  SK: 'PROFILE'
+});
 
-export const messagesRelations = relations(messages, ({ one, many }) => ({
-  conversation: one(conversations, {
-    fields: [messages.conversationId],
-    references: [conversations.id],
-  }),
-  tickets: many(tickets),
-}));
+export const createUserSettingsKeys = (userId: string) => ({
+  PK: `USER#${userId}`,
+  SK: 'SETTINGS'
+});
 
-export const ticketsRelations = relations(tickets, ({ one }) => ({
-  conversation: one(conversations, {
-    fields: [tickets.conversationId],
-    references: [conversations.id],
-  }),
-  message: one(messages, {
-    fields: [tickets.messageId],
-    references: [messages.id],
-  }),
-}));
+export const createConversationKeys = (userId: string, conversationId: string, timestamp?: string) => ({
+  PK: `USER#${userId}`,
+  SK: `CONV#${timestamp || new Date().toISOString()}#${conversationId}`
+});
 
-export const providerConfigsRelations = relations(providerConfigs, ({ one }) => ({
-  user: one(users, {
-    fields: [providerConfigs.userId],
-    references: [users.id],
-  }),
-}));
+export const createMessageKeys = (conversationId: string, timestamp: string, messageId: string) => ({
+  PK: `CONV#${conversationId}`,
+  SK: `MSG#${timestamp}#${messageId}`
+});
 
-// Types
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
+export const createTicketKeys = (conversationId: string, ticketId: string) => ({
+  PK: `CONV#${conversationId}`,
+  SK: `TICKET#${ticketId}`
+});
 
-export type UserSettings = typeof userSettings.$inferSelect;
-export type NewUserSettings = typeof userSettings.$inferInsert;
+export const createProviderConfigKeys = (userId: string, provider: string) => ({
+  PK: `USER#${userId}`,
+  SK: `PROVIDER#${provider}`
+});
 
-export type Conversation = typeof conversations.$inferSelect;
-export type NewConversation = typeof conversations.$inferInsert;
+// GSI keys for shared conversations
+export const createShareKeys = (shareId: string, conversationId: string) => ({
+  GSI1PK: `SHARE#${shareId}`,
+  GSI1SK: `CONV#${conversationId}`
+});
 
-export type Message = typeof messages.$inferSelect;
-export type NewMessage = typeof messages.$inferInsert;
+// Utility functions
+export const generateId = () => nanoid();
 
-export type Ticket = typeof tickets.$inferSelect;
-export type NewTicket = typeof tickets.$inferInsert;
+export const createTimestamp = () => new Date().toISOString();
 
-export type ProviderConfig = typeof providerConfigs.$inferSelect;
-export type NewProviderConfig = typeof providerConfigs.$inferInsert;
+// Helper to create full DynamoDB items
+export const createUserItem = (userData: NewUser): User => {
+  const id = generateId();
+  const now = createTimestamp();
+  return {
+    ...createUserKeys(id),
+    type: 'USER',
+    id,
+    createdAt: now,
+    updatedAt: now,
+    ...userData,
+  };
+};
+
+export const createUserSettingsItem = (settingsData: NewUserSettings): UserSettings => {
+  const now = createTimestamp();
+  return {
+    ...createUserSettingsKeys(settingsData.userId),
+    type: 'USER_SETTINGS',
+    createdAt: now,
+    updatedAt: now,
+    ...settingsData,
+  };
+};
+
+export const createConversationItem = (conversationData: NewConversation): Conversation => {
+  const id = generateId();
+  const now = createTimestamp();
+  const item: Conversation = {
+    ...createConversationKeys(conversationData.userId, id, now),
+    type: 'CONVERSATION',
+    id,
+    createdAt: now,
+    updatedAt: now,
+    ...conversationData,
+  };
+
+  // Add GSI keys if shareId is provided
+  if (conversationData.shareId) {
+    const gsiKeys = createShareKeys(conversationData.shareId, id);
+    item.GSI1PK = gsiKeys.GSI1PK;
+    item.GSI1SK = gsiKeys.GSI1SK;
+  }
+
+  return item;
+};
+
+export const createMessageItem = (messageData: NewMessage): Message => {
+  const id = generateId();
+  const now = createTimestamp();
+  return {
+    ...createMessageKeys(messageData.conversationId, now, id),
+    type: 'MESSAGE',
+    id,
+    createdAt: now,
+    updatedAt: now,
+    ...messageData,
+  };
+};
+
+export const createTicketItem = (ticketData: NewTicket): Ticket => {
+  const id = generateId();
+  const now = createTimestamp();
+  return {
+    ...createTicketKeys(ticketData.conversationId, id),
+    type: 'TICKET',
+    id,
+    createdAt: now,
+    updatedAt: now,
+    ...ticketData,
+  };
+};
+
+export const createProviderConfigItem = (configData: NewProviderConfig): ProviderConfig => {
+  const id = generateId();
+  const now = createTimestamp();
+  return {
+    ...createProviderConfigKeys(configData.userId, configData.provider),
+    type: 'PROVIDER_CONFIG',
+    id,
+    createdAt: now,
+    updatedAt: now,
+    ...configData,
+  };
+};
