@@ -157,7 +157,7 @@ const GitLabSettings: React.FC = () => {
               Create a personal access token with <strong>&quot;api&quot;</strong> scope
             </p>
             <a
-              href={`${formData.baseUrl}/-/profile/personal_access_tokens`}
+              href={`${formData.baseUrl}/-/user_settings/personal_access_tokens`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline inline-flex items-center gap-1"
