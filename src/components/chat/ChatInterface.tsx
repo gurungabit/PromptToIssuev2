@@ -39,6 +39,14 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
   const [showProviderMenu, setShowProviderMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [ticketPanelCollapsed, setTicketPanelCollapsed] = useState(false);
+  const [ticketPanelWidth, setTicketPanelWidth] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('ticketPanelWidth');
+      return saved ? parseInt(saved, 10) : 500;
+    }
+    return 500;
+  });
+  const [isResizing, setIsResizing] = useState(false);
 
   const router = useRouter();
 
@@ -80,6 +88,50 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showProviderMenu]);
+
+  // Resize functionality for ticket panel
+  const MIN_PANEL_WIDTH = 300;
+  const MAX_PANEL_WIDTH = 800;
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const newWidth = window.innerWidth - e.clientX;
+      const constrainedWidth = Math.min(Math.max(newWidth, MIN_PANEL_WIDTH), MAX_PANEL_WIDTH);
+      setTicketPanelWidth(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
+
+  // Save panel width to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ticketPanelWidth', ticketPanelWidth.toString());
+    }
+  }, [ticketPanelWidth]);
 
   const getProviderDisplayName = (provider: string) => {
     switch (provider) {
@@ -487,9 +539,26 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
             <div
               className={cn(
                 'border-l bg-muted/20 overflow-y-auto scroll-area transition-all duration-300 ease-in-out relative z-10',
-                ticketPanelCollapsed ? 'w-12' : 'w-[500px]'
+                ticketPanelCollapsed && 'opacity-50'
               )}
+              style={{
+                width: ticketPanelCollapsed ? '48px' : `${ticketPanelWidth}px`,
+                minWidth: ticketPanelCollapsed ? '48px' : `${MIN_PANEL_WIDTH}px`,
+                maxWidth: ticketPanelCollapsed ? '48px' : `${MAX_PANEL_WIDTH}px`
+              }}
             >
+              {/* Resize Handle */}
+              {!ticketPanelCollapsed && (
+                <div
+                  className={cn(
+                    'absolute left-0 top-0 w-1 h-full bg-transparent hover:bg-blue-500/50 cursor-col-resize z-20 transition-colors duration-200',
+                    isResizing && 'bg-blue-500/70'
+                  )}
+                  onMouseDown={handleResizeStart}
+                  title="Drag to resize panel"
+                />
+              )}
+
               {/* Toggle Button */}
               <button
                 onClick={() => setTicketPanelCollapsed(!ticketPanelCollapsed)}
