@@ -20,7 +20,7 @@ interface SharedConversation {
 
 const SharedConversationPage = () => {
   const params = useParams();
-  const shareId = params.shareId as string;
+  const shareId = params?.shareId as string;
 
   const [conversation, setConversation] = useState<SharedConversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);

@@ -7,12 +7,25 @@ export interface LLMMessage {
   content: string;
 }
 
+// Tool definition for MCP integration
+export interface LLMTool {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
 // Configuration for LLM requests
 export interface LLMRequestConfig {
   model?: string;
   maxTokens?: number;
   temperature?: number;
   stream?: boolean;
+  tools?: LLMTool[];
+  toolExecutor?: (toolName: string, parameters: Record<string, unknown>) => Promise<unknown>;
 }
 
 // Base interface that all LLM providers must implement
@@ -69,9 +82,10 @@ export abstract class BaseLLMProvider {
   /**
    * Build the system prompt based on chat mode
    * @param mode - Current chat mode
+   * @param tools - Available tools for this session
    * @returns System prompt string
    */
-  protected buildSystemPrompt(mode: ChatMode): string {
+  protected buildSystemPrompt(mode: ChatMode, tools?: LLMTool[]): string {
     if (mode === 'ticket') {
       return `You are an expert software development assistant specialized in creating detailed, well-structured tickets and issues. Your role is to analyze user requirements and break them down into actionable tickets.
 
@@ -117,7 +131,7 @@ Guidelines:
 - Provide reasoning for your ticket structure
 - Ask for clarification if requirements are unclear or ambiguous`;
     } else {
-      return `# Software Development Assistant System Prompt
+      let systemPrompt = `# Software Development Assistant System Prompt
 
 You are a highly skilled software development assistant designed to help developers with coding, architecture, debugging, and technical decision-making. You have extensive knowledge across multiple programming languages, frameworks, tools, and development methodologies.
 
@@ -131,7 +145,31 @@ You are a highly skilled software development assistant designed to help develop
 
 **DevOps & Tools**: Familiar with Docker, Kubernetes, CI/CD pipelines, Git, cloud platforms (AWS, Azure, GCP), monitoring, and deployment strategies.
 
-**Software Architecture**: Can advise on design patterns, microservices, system design, API design, scalability, performance optimization, and best practices.
+**Software Architecture**: Can advise on design patterns, microservices, system design, API design, scalability, performance optimization, and best practices.`;
+
+      // Add tools information if available
+      if (tools && tools.length > 0) {
+        systemPrompt += `
+
+## Available Tools
+
+You have access to the following tools that you can use to help users:
+
+${tools.map(tool => `**${tool.name}**: ${tool.description}
+Parameters: ${JSON.stringify(tool.parameters, null, 2)}`).join('\n\n')}
+
+When a user asks for something that can be accomplished using these tools, you should intelligently use them! For example:
+- If they ask "list my github repos" or "list repos for X", use the list_repositories tool
+- If they ask "what's this project about?" or "tell me about this repository", use get_file to read README.md and package.json
+- If they ask to create an issue, use the create_issue tool
+- If they ask about specific repos, use the get_repository_info tool
+- If they ask about files or code, use get_file or list_repository_contents tools
+- If they want to understand a project's structure, use list_repository_contents to explore directories
+
+IMPORTANT: Be proactive in using these tools to provide comprehensive answers. When someone asks about a project, automatically read relevant files like README.md, package.json, etc. to give them detailed information.`;
+      }
+
+      systemPrompt += `
 
 ## Response Guidelines
 
@@ -141,7 +179,15 @@ You are a highly skilled software development assistant designed to help develop
 - Offer multiple approaches when appropriate, explaining trade-offs
 - Stay current with modern development practices and emerging technologies
 - Help debug issues by asking clarifying questions when needed
-- Provide step-by-step guidance for complex implementations
+- Provide step-by-step guidance for complex implementations`;
+
+      if (tools && tools.length > 0) {
+        systemPrompt += `
+- Use available tools when they can help answer the user's question
+- Always explain when and why you're using a tool`;
+      }
+
+      systemPrompt += `
 
 ## Communication Style
 
@@ -180,6 +226,8 @@ The "content" field should contain your main response. The "suggestions" field i
 \`\`\`
 
 Always ensure your response is valid JSON and follows this exact structure.`;
+
+      return systemPrompt;
     }
   }
 

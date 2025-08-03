@@ -101,12 +101,21 @@ export class OllamaProvider extends BaseLLMProvider {
     mode: ChatMode,
     requestConfig?: LLMRequestConfig
   ): Promise<AIResponse> {
-    const systemPrompt = this.buildSystemPrompt(mode);
+    const systemPrompt = this.buildSystemPrompt(mode, requestConfig?.tools);
 
-    // Build the conversation context
-    const conversationText = [{ role: 'system', content: systemPrompt }, ...messages]
+    // Build the conversation context with tools information
+    let conversationText = [{ role: 'system', content: systemPrompt }, ...messages]
       .map(msg => `${msg.role}: ${msg.content}`)
       .join('\n');
+
+    // Add tools information to the prompt if available
+    if (requestConfig?.tools && requestConfig.tools.length > 0) {
+      const toolsInfo = requestConfig.tools.map(tool => 
+        `Tool: ${tool.name} - ${tool.description}\nParameters: ${JSON.stringify(tool.parameters, null, 2)}`
+      ).join('\n\n');
+      
+      conversationText += `\n\nAvailable Tools:\n${toolsInfo}\n\nWhen using tools, mention them in your response and explain what you're doing.`;
+    }
 
     const prompt = `${conversationText}\n\nassistant:`;
 

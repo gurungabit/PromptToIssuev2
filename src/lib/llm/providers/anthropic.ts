@@ -72,7 +72,7 @@ export class AnthropicProvider extends BaseLLMProvider {
       throw new Error('Anthropic client not initialized');
     }
 
-    const systemPrompt = this.buildSystemPrompt(mode);
+    const systemPrompt = this.buildSystemPrompt(mode, requestConfig?.tools);
 
     // Convert messages to Anthropic format
     const anthropicMessages: Anthropic.Messages.MessageParam[] = messages.map(msg => ({
@@ -80,14 +80,24 @@ export class AnthropicProvider extends BaseLLMProvider {
       content: msg.content,
     }));
 
+    // Prepare tools for Anthropic if available
+    const tools = requestConfig?.tools?.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      input_schema: tool.parameters
+    }));
+
     try {
-      const response = await this.client.messages.create({
+      const requestParams = {
         model: requestConfig?.model || this.config.model || 'claude-3-haiku-20240307',
         max_tokens: requestConfig?.maxTokens || this.config.maxTokens || 4000,
         temperature: requestConfig?.temperature ?? this.config.temperature ?? 0.7,
         system: systemPrompt,
         messages: anthropicMessages,
-      });
+        ...(tools && tools.length > 0 && { tools })
+      };
+
+      const response = await this.client.messages.create(requestParams);
 
       const content = response.content[0];
       if (content.type !== 'text') {

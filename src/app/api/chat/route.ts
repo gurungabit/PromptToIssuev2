@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createProviderWithConfig } from '@/lib/llm';
 import { ConversationRepository, MessageRepository } from '@/lib/db/repositories';
-import type { LLMMessage } from '@/lib/llm/base';
+import type { LLMMessage, LLMTool } from '@/lib/llm/base';
 import type { Message } from '@/lib/schemas';
 import { generateId } from '@/lib/utils';
 import { stringifyJsonField } from '@/lib/db/utils';
@@ -17,7 +17,15 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     // Extract data including conversationId for database storage
-    const { message, mode, provider, config, conversationHistory = [], conversationId } = body;
+    const {
+      message,
+      mode,
+      provider,
+      config,
+      conversationHistory = [],
+      conversationId,
+      mcpConfig,
+    } = body;
 
     // Get user ID from headers for authentication
     const userId = getUserIdFromRequest(request);
@@ -27,6 +35,294 @@ export async function POST(request: NextRequest) {
       ...config,
       provider,
     });
+
+    // Initialize MCP tools if available
+    const availableTools: LLMTool[] = [];
+    if (mcpConfig?.enabled && mcpConfig?.servers?.length > 0) {
+      // Get tools from enabled MCP servers
+      const enabledServers = mcpConfig.servers.filter(
+        (server: Record<string, unknown>) => server.enabled
+      );
+
+      for (const server of enabledServers) {
+        if (server.id === 'github-mcp') {
+          // Add GitHub MCP tools
+          availableTools.push(
+            {
+              name: 'list_repositories',
+              description: 'List repositories for a user or organization',
+              parameters: {
+                type: 'object',
+                properties: {
+                  owner: { type: 'string', description: 'GitHub username or organization' },
+                  per_page: {
+                    type: 'number',
+                    description: 'Number of repositories per page',
+                    default: 30,
+                  },
+                },
+                required: ['owner'],
+              },
+            },
+            {
+              name: 'get_repository_info',
+              description: 'Get detailed information about a specific repository',
+              parameters: {
+                type: 'object',
+                properties: {
+                  owner: { type: 'string', description: 'Repository owner' },
+                  repo: { type: 'string', description: 'Repository name' },
+                },
+                required: ['owner', 'repo'],
+              },
+            },
+            {
+              name: 'list_issues',
+              description: 'List issues for a repository',
+              parameters: {
+                type: 'object',
+                properties: {
+                  owner: { type: 'string', description: 'Repository owner' },
+                  repo: { type: 'string', description: 'Repository name' },
+                  state: { type: 'string', enum: ['open', 'closed', 'all'], default: 'open' },
+                  per_page: {
+                    type: 'number',
+                    description: 'Number of issues per page',
+                    default: 30,
+                  },
+                },
+                required: ['owner', 'repo'],
+              },
+            },
+            {
+              name: 'create_issue',
+              description: 'Create a new issue in a repository',
+              parameters: {
+                type: 'object',
+                properties: {
+                  owner: { type: 'string', description: 'Repository owner' },
+                  repo: { type: 'string', description: 'Repository name' },
+                  title: { type: 'string', description: 'Issue title' },
+                  body: { type: 'string', description: 'Issue description' },
+                  labels: { type: 'array', items: { type: 'string' }, description: 'Issue labels' },
+                  assignees: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Issue assignees',
+                  },
+                },
+                required: ['owner', 'repo', 'title'],
+              },
+            },
+            {
+              name: 'get_file',
+              description:
+                'Get the content of any file from a repository (README, package.json, source code, etc.)',
+              parameters: {
+                type: 'object',
+                properties: {
+                  owner: { type: 'string', description: 'Repository owner' },
+                  repo: { type: 'string', description: 'Repository name' },
+                  file_path: {
+                    type: 'string',
+                    description:
+                      'Path to the file (e.g. "README.md", "package.json", "src/index.js")',
+                  },
+                  branch: { type: 'string', description: 'Branch name', default: 'main' },
+                },
+                required: ['owner', 'repo', 'file_path'],
+              },
+            },
+            {
+              name: 'list_repository_contents',
+              description: 'List the contents of a directory in a repository',
+              parameters: {
+                type: 'object',
+                properties: {
+                  owner: { type: 'string', description: 'Repository owner' },
+                  repo: { type: 'string', description: 'Repository name' },
+                  path: {
+                    type: 'string',
+                    description: 'Directory path (empty for root)',
+                    default: '',
+                  },
+                  branch: { type: 'string', description: 'Branch name', default: 'main' },
+                },
+                required: ['owner', 'repo'],
+              },
+            },
+            {
+              name: 'search_repositories',
+              description: 'Search for repositories on GitHub',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string', description: 'Search query' },
+                  sort: { type: 'string', enum: ['stars', 'forks', 'updated'], default: 'stars' },
+                  order: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+                  per_page: {
+                    type: 'number',
+                    description: 'Number of results per page',
+                    default: 30,
+                  },
+                },
+                required: ['query'],
+              },
+            }
+          );
+        } else if (server.id === 'fetch-mcp') {
+          // Add Fetch MCP tools
+          availableTools.push({
+            name: 'fetch',
+            description: 'Fetch content from a URL (web scraping, API calls)',
+            parameters: {
+              type: 'object',
+              properties: {
+                url: { type: 'string', description: 'URL to fetch content from' },
+                method: { type: 'string', enum: ['GET', 'POST'], default: 'GET' },
+                headers: { type: 'object', description: 'HTTP headers to include' },
+                body: { type: 'string', description: 'Request body for POST requests' },
+              },
+              required: ['url'],
+            },
+          });
+        }
+      }
+    }
+
+    // Tool execution function - call the actual MCP server
+    const executeTool = async (toolName: string, parameters: Record<string, unknown>) => {
+      if (!mcpConfig?.enabled) return null;
+
+      // Find the appropriate server for this tool
+      let server;
+      if (
+        [
+          'list_repositories',
+          'get_repository_info',
+          'list_issues',
+          'create_issue',
+          'get_issue',
+          'get_file',
+          'list_repository_contents',
+          'search_repositories',
+        ].includes(toolName)
+      ) {
+        server = mcpConfig.servers.find(
+          (s: Record<string, unknown>) => s.id === 'github-mcp' && s.enabled
+        );
+      } else if (toolName === 'fetch') {
+        server = mcpConfig.servers.find(
+          (s: Record<string, unknown>) => s.id === 'fetch-mcp' && s.enabled
+        );
+      }
+      if (!server) return null;
+
+      try {
+        // Call the actual MCP server using stdio
+        const { spawn } = await import('child_process');
+
+        return new Promise((resolve, reject) => {
+          // For UV, we need to run it properly
+          const mcpProcess = spawn(server.command, server.args, {
+            cwd: server.cwd,
+            env: {
+              ...process.env,
+              ...server.env,
+              PATH: process.env.PATH, // Ensure PATH is preserved
+            },
+            stdio: ['pipe', 'pipe', 'pipe'],
+            shell: true, // Use shell to properly resolve UV
+          });
+
+          let responseData = '';
+          let initialized = false;
+
+          mcpProcess.stdout.on('data', data => {
+            responseData += data.toString();
+
+            // Process line by line for MCP protocol
+            const lines = responseData.split('\n');
+            responseData = lines.pop() || ''; // Keep incomplete line
+
+            for (const line of lines) {
+              if (!line.trim()) continue;
+
+              try {
+                const response = JSON.parse(line);
+
+                if (!initialized && response.id === 1) {
+                  // Send initialized notification first
+                  const initNotification = {
+                    jsonrpc: '2.0',
+                    method: 'notifications/initialized',
+                  };
+                  mcpProcess.stdin.write(JSON.stringify(initNotification) + '\n');
+
+                  // Now call the tool
+                  initialized = true;
+                  const toolRequest = {
+                    jsonrpc: '2.0',
+                    id: 2,
+                    method: 'tools/call',
+                    params: {
+                      name: toolName,
+                      arguments: parameters,
+                    },
+                  };
+                  mcpProcess.stdin.write(JSON.stringify(toolRequest) + '\n');
+                } else if (response.id === 2) {
+                  // Tool call response
+                  if (response.error) {
+                    reject(new Error(response.error.message || 'Tool call failed'));
+                  } else {
+                    // Extract the actual result from MCP response structure
+                    const result =
+                      response.result?.structuredContent?.result ||
+                      response.result?.content?.[0]?.text ||
+                      response.result;
+                    resolve(result);
+                  }
+                  mcpProcess.kill();
+                }
+              } catch {
+                // Ignore non-JSON lines (like the banner)
+              }
+            }
+          });
+
+          mcpProcess.on('close', code => {
+            if (!initialized) {
+              reject(new Error(`MCP server failed to initialize (code ${code})`));
+            }
+          });
+
+          mcpProcess.stderr.on('data', () => {
+            // Ignore stderr output from MCP server
+          });
+
+          // Start MCP initialization
+          const initRequest = {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'initialize',
+            params: {
+              protocolVersion: '2024-11-05',
+              capabilities: {},
+              clientInfo: {
+                name: 'PromptToIssue',
+                version: '1.0.0',
+              },
+            },
+          };
+
+          mcpProcess.stdin.write(JSON.stringify(initRequest) + '\n');
+        });
+      } catch (error) {
+        console.error('MCP execution error:', error);
+        return null;
+      }
+    };
 
     // Validate provider configuration
     const isConfigValid = await llmProvider.validateConfiguration();
@@ -44,10 +340,15 @@ export async function POST(request: NextRequest) {
     if (conversationId && userId) {
       try {
         // First check if conversation exists by trying to get it
-        const existingConversation = await conversationRepo.getConversationById(conversationId, userId);
+        const existingConversation = await conversationRepo.getConversationById(
+          conversationId,
+          userId
+        );
 
         if (!existingConversation) {
-          console.warn(`Conversation ${conversationId} not found for user ${userId}, skipping message save`);
+          console.warn(
+            `Conversation ${conversationId} not found for user ${userId}, skipping message save`
+          );
           // Continue without saving to database
         } else {
           await messageRepo.createMessage({
@@ -83,14 +384,20 @@ export async function POST(request: NextRequest) {
       },
     ];
 
-    // Generate response from LLM
-    const aiResponse = await llmProvider.generateResponse(llmMessages, mode);
+    // Generate response from LLM with available tools and tool execution capability
+    const aiResponse = await llmProvider.generateResponse(llmMessages, mode, {
+      tools: availableTools,
+      toolExecutor: executeTool,
+    });
 
     // Save assistant response to database if conversationId exists
     if (conversationId && aiResponse.type === 'assistant' && userId) {
       try {
         // Check if conversation still exists
-        const existingConversation = await conversationRepo.getConversationById(conversationId, userId);
+        const existingConversation = await conversationRepo.getConversationById(
+          conversationId,
+          userId
+        );
 
         if (existingConversation) {
           await messageRepo.createMessage({
@@ -131,7 +438,10 @@ export async function POST(request: NextRequest) {
       if (conversationId && userId) {
         try {
           // Check if conversation still exists
-          const existingConversation = await conversationRepo.getConversationById(conversationId, userId);
+          const existingConversation = await conversationRepo.getConversationById(
+            conversationId,
+            userId
+          );
 
           if (existingConversation) {
             let responseContent = `I've analyzed your requirements and created ${aiResponse.tickets.length} ticket(s). `;

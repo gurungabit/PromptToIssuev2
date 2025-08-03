@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useChat } from '@/contexts/ChatContext';
 import { GitLabSettings } from './GitLabSettings';
+import { MCPSettings } from './MCPSettings';
 import type { LLMProvider, LLMConfig } from '@/lib/schemas';
 import {
   X,
@@ -16,6 +17,7 @@ import {
   CheckCircle,
   AlertTriangle,
   AlertCircle,
+  Link,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,9 +26,9 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
-  const { currentProvider, setProvider, providerConfigs, updateProviderConfig } = useChat();
+  const { currentProvider, setProvider, providerConfigs, updateProviderConfig, mcpConfig, updateMCPServers, updateMCPConfig } = useChat();
 
-  const [activeTab, setActiveTab] = useState<'providers' | 'platforms'>('providers');
+  const [activeTab, setActiveTab] = useState<'providers' | 'platforms' | 'mcp'>('providers');
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
   const [testingProvider, setTestingProvider] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<
@@ -140,6 +142,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
             onClick={() => setActiveTab('platforms')}
           >
             Platform Connections
+          </button>
+          <button
+            className={cn(
+              'px-6 py-3 text-sm font-medium border-b-2 transition-all duration-300 cursor-pointer hover:bg-accent/50',
+              activeTab === 'mcp'
+                ? 'border-primary text-primary bg-primary/5'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )}
+            onClick={() => setActiveTab('mcp')}
+          >
+            <Link className="w-4 h-4 mr-2 inline" />
+            MCP Servers
           </button>
         </div>
 
@@ -366,6 +380,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {activeTab === 'mcp' && (
+            <div className="space-y-6">
+              <MCPSettings 
+                mcpServers={mcpConfig.servers}
+                mcpEnabled={mcpConfig.enabled}
+                onUpdateServers={updateMCPServers}
+                onUpdateMCPEnabled={(enabled) => updateMCPConfig({ enabled })}
+              />
             </div>
           )}
         </div>

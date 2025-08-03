@@ -19,6 +19,8 @@ import type {
   Ticket,
   GitLabConfig,
   ProjectSelection,
+  MCPServer,
+  MCPConfig,
 } from '@/lib/schemas';
 
 // Custom conversation type for UI
@@ -50,6 +52,9 @@ interface ChatContextType {
   gitlabConfig: GitLabConfig | null;
   showProjectSelection: boolean;
 
+  // MCP Integration
+  mcpConfig: MCPConfig;
+
   // Actions
   sendMessage: (content: string) => Promise<string | null>;
   setMode: (mode: ChatMode) => void;
@@ -76,6 +81,10 @@ interface ChatContextType {
   setGitLabConfig: (config: GitLabConfig) => void;
   createGitLabIssues: (tickets: Ticket[], projectSelection: ProjectSelection) => Promise<void>;
   setShowProjectSelection: (show: boolean) => void;
+
+  // MCP Actions
+  updateMCPConfig: (config: Partial<MCPConfig>) => void;
+  updateMCPServers: (servers: MCPServer[]) => void;
 
   // Configuration
   providerConfigs: Record<LLMProvider, LLMConfig>;
@@ -135,6 +144,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   const [gitlabConfig, setGitlabConfig] = useState<GitLabConfig | null>(null);
   const [showProjectSelection, setShowProjectSelection] = useState(false);
 
+  // MCP Configuration
+  const [mcpConfig, setMcpConfig] = useState<MCPConfig>({
+    servers: [],
+    enabled: false,
+  });
+
   // Helper function to get auth headers
   const getAuthHeaders = useCallback(() => {
     const headers: Record<string, string> = {
@@ -153,6 +168,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     const savedMode = localStorage.getItem('chatMode') as ChatMode;
     const savedProvider = localStorage.getItem('chatProvider') as LLMProvider;
     const savedConfigs = localStorage.getItem('providerConfigs');
+    const savedMcpConfig = localStorage.getItem('mcpConfig');
 
     if (savedMode) setCurrentMode(savedMode);
     if (savedProvider) setCurrentProvider(savedProvider);
@@ -168,6 +184,14 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         console.error('Failed to parse saved provider configs:', error);
         // Clear corrupted localStorage
         localStorage.removeItem('providerConfigs');
+      }
+    }
+    if (savedMcpConfig) {
+      try {
+        setMcpConfig(JSON.parse(savedMcpConfig));
+      } catch (error) {
+        console.error('Failed to parse saved MCP config:', error);
+        localStorage.removeItem('mcpConfig');
       }
     }
   }, []);
@@ -196,6 +220,11 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('providerConfigs', JSON.stringify(providerConfigs));
   }, [providerConfigs]);
+
+  // Persist MCP config
+  useEffect(() => {
+    localStorage.setItem('mcpConfig', JSON.stringify(mcpConfig));
+  }, [mcpConfig]);
 
   // Persist GitLab config
   useEffect(() => {
@@ -451,6 +480,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
             config: providerConfigs[currentProvider],
             conversationHistory: messages.slice(-10), // Last 10 messages for context: Increase this number to increase context if needed
             conversationId, // Include conversation ID for database storage
+            mcpConfig, // Include MCP configuration for tool access
           }),
         });
 
@@ -512,6 +542,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       currentMode,
       currentProvider,
       providerConfigs,
+      mcpConfig,
       messages,
       createNewConversation,
       addMessage,
@@ -686,6 +717,15 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       [provider]: { ...prev[provider], ...config },
     }));
   };
+
+  // MCP Configuration functions
+  const updateMCPConfig = useCallback((config: Partial<MCPConfig>) => {
+    setMcpConfig(prev => ({ ...prev, ...config }));
+  }, []);
+
+  const updateMCPServers = useCallback((servers: MCPServer[]) => {
+    setMcpConfig(prev => ({ ...prev, servers }));
+  }, []);
 
   // Add a function to load conversations from parent component
   const loadConversationsForUser = useCallback(
@@ -876,6 +916,9 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     gitlabConfig,
     showProjectSelection,
 
+    // MCP Integration
+    mcpConfig,
+
     // Actions
     sendMessage,
     setMode,
@@ -902,6 +945,10 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     setGitLabConfig: setGitlabConfig,
     createGitLabIssues,
     setShowProjectSelection,
+
+    // MCP Actions
+    updateMCPConfig,
+    updateMCPServers,
 
     // Configuration
     providerConfigs,

@@ -15,7 +15,7 @@ const ConversationPage = () => {
   const { isAuthenticated } = useAuth();
   const [showSettings, setShowSettings] = useState(false);
 
-  const conversationId = params.id as string;
+  const conversationId = params?.id as string;
 
   // Load conversation when component mounts or ID changes
   useEffect(() => {

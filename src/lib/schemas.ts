@@ -106,12 +106,32 @@ export const LLMConfigSchema = z.object({
 });
 export type LLMConfig = z.infer<typeof LLMConfigSchema>;
 
+// MCP Integration Schemas
+export const MCPServerSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  command: z.string(),
+  args: z.array(z.string()),
+  cwd: z.string().optional(),
+  env: z.record(z.string(), z.string()).optional(),
+  enabled: z.boolean().default(true),
+});
+export type MCPServer = z.infer<typeof MCPServerSchema>;
+
+export const MCPConfigSchema = z.object({
+  servers: z.array(MCPServerSchema).default([]),
+  enabled: z.boolean().default(false),
+});
+export type MCPConfig = z.infer<typeof MCPConfigSchema>;
+
 // User Preferences Schema
 export const UserPreferencesSchema = z.object({
   defaultProvider: LLMProviderSchema.default('openai'),
   defaultMode: ChatModeSchema.default('ticket'),
   platforms: z.array(PlatformConfigSchema).default([]),
   llmConfigs: z.array(LLMConfigSchema).default([]),
+  mcpConfig: MCPConfigSchema.optional(),
   ticketTemplate: TicketSchema.partial().optional(),
 });
 export type UserPreferences = z.infer<typeof UserPreferencesSchema>;
