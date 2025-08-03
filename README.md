@@ -1,11 +1,12 @@
 # 🎯 AI Ticket Automation
 
-An intelligent chatbot application that generates structured tickets from natural language descriptions using AI. Built with Next.js 14, TypeScript, Tailwind CSS, and DynamoDB.
+An intelligent chatbot application that generates structured tickets from natural language descriptions using AI. Built with Next.js 15, TypeScript, Tailwind CSS, and DynamoDB.
 
 ## ✨ Features
 
 - **Dual Modes**: Assistant for general help, Ticket mode for structured ticket generation
 - **Multi-Provider AI**: Support for OpenAI, Anthropic, Google AI, and Ollama
+- **MCP Server Integration**: GitHub MCP server for repository management
 - **Professional UI**: ChatGPT-like interface with dark/light themes
 - **Persistent Storage**: DynamoDB with single table design
 - **Real-time Chat**: Smooth conversations with copy functionality
@@ -22,7 +23,7 @@ An intelligent chatbot application that generates structured tickets from natura
 ### 1. Clone and Install
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/gurungabit/PromptToIssuev2.git
 cd prompt-to-issue
 npm install
 ```
@@ -139,11 +140,12 @@ DYNAMODB_TABLE_NAME=PromptToIssueTable
 
 ```
 src/
-├── app/                  # Next.js 14 app directory
+├── app/                  # Next.js 15 app directory
 │   ├── api/             # API routes
 │   └── page.tsx         # Main page
 ├── components/          # React components
 │   ├── chat/           # Chat interface components
+│   ├── settings/       # Settings and configuration components
 │   ├── tickets/        # Ticket management components
 │   └── ui/             # Reusable UI components
 ├── contexts/           # React contexts
@@ -151,7 +153,9 @@ src/
 │   ├── db/           # Database schema and repositories
 │   ├── llm/          # LLM provider system
 │   └── utils.ts      # Utility functions
-└── styles/           # Global styles
+├── styles/           # Global styles
+└── mcp/              # MCP server implementations
+    └── github-mcp/   # GitHub MCP server
 ```
 
 ## 🛠️ Development
@@ -161,6 +165,23 @@ src/
 1. Create provider class in `src/lib/llm/providers/`
 2. Register in `src/lib/llm/index.ts`
 3. Update schemas in `src/lib/schemas.ts`
+
+### MCP Server Development
+
+The project includes MCP (Model Context Protocol) server integration:
+
+- **GitHub MCP Server**: Located in `mcp/github-mcp/`
+- **Configuration**: Managed through `MCPSettings` component
+- **Security**: Use environment variables for API tokens
+
+To develop MCP servers:
+
+```bash
+cd mcp/github-mcp
+uv init
+uv add fastmcp requests
+uv run python github_mcp_server.py
+```
 
 ### Database Operations
 
