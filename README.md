@@ -6,7 +6,7 @@ An intelligent chatbot application that generates structured tickets from natura
 
 - **Dual Modes**: Assistant for general help, Ticket mode for structured ticket generation
 - **Multi-Provider AI**: Support for OpenAI, Anthropic, Google AI, and Ollama
-- **MCP Server Integration**: GitHub MCP server for repository management
+- **MCP Server Integration**: GitHub and GitLab MCP servers for repository management
 - **Professional UI**: ChatGPT-like interface with dark/light themes
 - **Persistent Storage**: DynamoDB with single table design
 - **Real-time Chat**: Smooth conversations with copy functionality
@@ -155,7 +155,8 @@ src/
 │   └── utils.ts      # Utility functions
 ├── styles/           # Global styles
 └── mcp/              # MCP server implementations
-    └── github-mcp/   # GitHub MCP server
+    ├── github-mcp/   # GitHub MCP server
+    └── gitlab-mcp/   # GitLab MCP server
 ```
 
 ## 🛠️ Development
@@ -170,17 +171,23 @@ src/
 
 The project includes MCP (Model Context Protocol) server integration:
 
-- **GitHub MCP Server**: Located in `mcp/github-mcp/`
+- **GitHub MCP Server**: Located in `mcp/github-mcp/` - GitHub API integration for repositories, issues, and pull requests
+- **GitLab MCP Server**: Located in `mcp/gitlab-mcp/` - GitLab API integration for projects, issues, and merge requests (supports custom GitLab instances)
 - **Configuration**: Managed through `MCPSettings` component
 - **Security**: Use environment variables for API tokens
 
 To develop MCP servers:
 
 ```bash
+# GitHub MCP Server
 cd mcp/github-mcp
-uv init
-uv add fastmcp requests
+uv sync
 uv run python github_mcp_server.py
+
+# GitLab MCP Server
+cd mcp/gitlab-mcp
+uv sync
+uv run python gitlab_mcp_server.py
 ```
 
 ### Database Operations

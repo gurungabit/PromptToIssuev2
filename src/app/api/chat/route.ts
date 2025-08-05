@@ -170,6 +170,180 @@ export async function POST(request: NextRequest) {
               },
             }
           );
+        } else if (server.id === 'gitlab-mcp') {
+          // Add GitLab MCP tools
+          availableTools.push(
+            {
+              name: 'list_projects',
+              description: 'List projects for a user/group or all accessible projects',
+              parameters: {
+                type: 'object',
+                properties: {
+                  owner: { type: 'string', description: 'GitLab username or group name (optional)' },
+                  per_page: {
+                    type: 'number',
+                    description: 'Number of projects per page',
+                    default: 30,
+                  },
+                },
+                required: [],
+              },
+            },
+            {
+              name: 'get_project_info',
+              description: 'Get detailed information about a specific project',
+              parameters: {
+                type: 'object',
+                properties: {
+                  project_id: { 
+                    type: 'string', 
+                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  },
+                },
+                required: ['project_id'],
+              },
+            },
+            {
+              name: 'gitlab_list_issues',
+              description: 'List issues for a GitLab project',
+              parameters: {
+                type: 'object',
+                properties: {
+                  project_id: { 
+                    type: 'string', 
+                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  },
+                  state: { type: 'string', enum: ['opened', 'closed', 'all'], default: 'opened' },
+                  per_page: {
+                    type: 'number',
+                    description: 'Number of issues per page',
+                    default: 30,
+                  },
+                },
+                required: ['project_id'],
+              },
+            },
+            {
+              name: 'gitlab_create_issue',
+              description: 'Create a new issue in a GitLab project',
+              parameters: {
+                type: 'object',
+                properties: {
+                  project_id: { 
+                    type: 'string', 
+                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  },
+                  title: { type: 'string', description: 'Issue title' },
+                  description: { type: 'string', description: 'Issue description' },
+                  labels: { type: 'array', items: { type: 'string' }, description: 'Issue labels' },
+                  assignee_ids: {
+                    type: 'array',
+                    items: { type: 'number' },
+                    description: 'User IDs to assign',
+                  },
+                },
+                required: ['project_id', 'title'],
+              },
+            },
+            {
+              name: 'gitlab_get_issue',
+              description: 'Get detailed information about a specific GitLab issue',
+              parameters: {
+                type: 'object',
+                properties: {
+                  project_id: { 
+                    type: 'string', 
+                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  },
+                  issue_iid: { type: 'number', description: 'Issue internal ID (the number shown in UI)' },
+                },
+                required: ['project_id', 'issue_iid'],
+              },
+            },
+            {
+              name: 'gitlab_get_file',
+              description:
+                'Get the content of any file from a GitLab project (README, package.json, source code, etc.)',
+              parameters: {
+                type: 'object',
+                properties: {
+                  project_id: { 
+                    type: 'string', 
+                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  },
+                  file_path: {
+                    type: 'string',
+                    description:
+                      'Path to the file (e.g. "README.md", "package.json", "src/index.js")',
+                  },
+                  branch: { type: 'string', description: 'Branch name', default: 'main' },
+                },
+                required: ['project_id', 'file_path'],
+              },
+            },
+            {
+              name: 'list_repository_tree',
+              description: 'List the contents of a directory in a project repository',
+              parameters: {
+                type: 'object',
+                properties: {
+                  project_id: { 
+                    type: 'string', 
+                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  },
+                  path: {
+                    type: 'string',
+                    description: 'Directory path (empty for root)',
+                    default: '',
+                  },
+                  branch: { type: 'string', description: 'Branch name', default: 'main' },
+                },
+                required: ['project_id'],
+              },
+            },
+            {
+              name: 'search_projects',
+              description: 'Search for projects on GitLab',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: { type: 'string', description: 'Search query' },
+                  order_by: { 
+                    type: 'string', 
+                    enum: ['id', 'name', 'path', 'created_at', 'updated_at', 'last_activity_at'], 
+                    default: 'last_activity_at' 
+                  },
+                  sort: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+                  per_page: {
+                    type: 'number',
+                    description: 'Number of results per page',
+                    default: 30,
+                  },
+                },
+                required: ['query'],
+              },
+            },
+            {
+              name: 'list_merge_requests',
+              description: 'List merge requests for a project',
+              parameters: {
+                type: 'object',
+                properties: {
+                  project_id: { 
+                    type: 'string', 
+                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  },
+                  state: { type: 'string', enum: ['opened', 'closed', 'merged', 'all'], default: 'opened' },
+                  per_page: {
+                    type: 'number',
+                    description: 'Number of merge requests per page',
+                    default: 30,
+                  },
+                },
+                required: ['project_id'],
+              },
+            }
+          );
         } else if (server.id === 'fetch-mcp') {
           // Add Fetch MCP tools
           availableTools.push({
@@ -210,6 +384,22 @@ export async function POST(request: NextRequest) {
       ) {
         server = mcpConfig.servers.find(
           (s: Record<string, unknown>) => s.id === 'github-mcp' && s.enabled
+        );
+      } else if (
+        [
+          'list_projects',
+          'get_project_info',
+          'gitlab_list_issues',
+          'gitlab_create_issue',
+          'gitlab_get_issue',
+          'gitlab_get_file',
+          'list_repository_tree',
+          'search_projects',
+          'list_merge_requests',
+        ].includes(toolName)
+      ) {
+        server = mcpConfig.servers.find(
+          (s: Record<string, unknown>) => s.id === 'gitlab-mcp' && s.enabled
         );
       } else if (toolName === 'fetch') {
         server = mcpConfig.servers.find(

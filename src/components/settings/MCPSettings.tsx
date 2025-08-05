@@ -48,7 +48,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
     description: 'GitHub API integration for repositories, issues, and pull requests',
     command: 'uv',
     args: ['run', 'python', 'github_mcp_server.py'],
-    cwd: '/Users/abit/Desktop/cursor/PromptToIssueV2/prompt-to-issue/mcp/github-mcp',
+    cwd: './mcp/github-mcp',
     env: {
       GITHUB_TOKEN: 'your_github_token_here'
     },
@@ -70,6 +70,20 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
     onUpdateServers?.(updatedServers);
   };
 
+  const defaultGitLabMCP: MCPServer = {
+    id: 'gitlab-mcp',
+    name: 'GitLab MCP',
+    description: 'GitLab API integration for projects, issues, and merge requests',
+    command: 'uv',
+    args: ['run', 'python', 'gitlab_mcp_server.py'],
+    cwd: './mcp/gitlab-mcp',
+    env: {
+      GITLAB_TOKEN: 'your_gitlab_token_here',
+      GITLAB_API_BASE: 'https://gitlab.com/api/v4'
+    },
+    enabled: true
+  };
+
   const defaultFetchMCP: MCPServer = {
     id: 'fetch-mcp',
     name: 'Fetch MCP',
@@ -83,6 +97,19 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
     const exists = servers.find(s => s.id === 'github-mcp');
     if (!exists) {
       const updatedServers = [...servers, defaultGitHubMCP];
+      setServers(updatedServers);
+      onUpdateServers?.(updatedServers);
+      // Auto-enable MCP when adding first server
+      if (updatedServers.filter(s => s.enabled).length === 1) {
+        onUpdateMCPEnabled?.(true);
+      }
+    }
+  };
+
+  const addGitLabMCP = () => {
+    const exists = servers.find(s => s.id === 'gitlab-mcp');
+    if (!exists) {
+      const updatedServers = [...servers, defaultGitLabMCP];
       setServers(updatedServers);
       onUpdateServers?.(updatedServers);
       // Auto-enable MCP when adding first server
@@ -180,6 +207,102 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
             success: true, 
             message: `MCP server connected successfully! Found ${mockTools.length} available tools.`,
             tools: mockTools
+          }
+        }));
+      } else if (server.id === 'gitlab-mcp') {
+        // Validate GitLab MCP configuration
+        if (!server.command || server.args.length === 0) {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: { success: false, message: 'Missing command or arguments' }
+          }));
+          return;
+        }
+
+        const gitlabToken = server.env?.GITLAB_TOKEN;
+        const gitlabApiBase = server.env?.GITLAB_API_BASE;
+
+        if (!gitlabToken || gitlabToken === 'your_gitlab_token_here') {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: { success: false, message: 'GitLab token is required. Please set GITLAB_TOKEN environment variable.' }
+          }));
+          return;
+        }
+
+        if (!gitlabApiBase) {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: { success: false, message: 'GitLab API base URL is required. Please set GITLAB_API_BASE environment variable.' }
+          }));
+          return;
+        }
+
+        // Validate GitLab API base URL format
+        try {
+          new URL(gitlabApiBase);
+        } catch {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: { success: false, message: 'Invalid GitLab API base URL format. Please use a valid URL like https://gitlab.com/api/v4' }
+          }));
+          return;
+        }
+
+        const mockGitLabTools = [
+          {
+            name: 'list_projects',
+            description: 'List projects for a user/group or all accessible projects',
+            parameters: ['owner', 'per_page']
+          },
+          {
+            name: 'get_project_info',
+            description: 'Get detailed information about a specific project',
+            parameters: ['project_id']
+          },
+          {
+            name: 'list_issues',
+            description: 'List issues for a project',
+            parameters: ['project_id', 'state', 'per_page']
+          },
+          {
+            name: 'create_issue',
+            description: 'Create a new issue in a project',
+            parameters: ['project_id', 'title', 'description', 'labels', 'assignee_ids']
+          },
+          {
+            name: 'get_issue',
+            description: 'Get detailed information about a specific issue',
+            parameters: ['project_id', 'issue_iid']
+          },
+          {
+            name: 'get_file',
+            description: 'Get the content of any file from a project',
+            parameters: ['project_id', 'file_path', 'branch']
+          },
+          {
+            name: 'list_repository_tree',
+            description: 'List the contents of a directory in a project repository',
+            parameters: ['project_id', 'path', 'branch']
+          },
+          {
+            name: 'search_projects',
+            description: 'Search for projects on GitLab',
+            parameters: ['query', 'order_by', 'sort', 'per_page']
+          },
+          {
+            name: 'list_merge_requests',
+            description: 'List merge requests for a project',
+            parameters: ['project_id', 'state', 'per_page']
+          }
+        ];
+
+        setTestResults(prev => ({
+          ...prev,
+          [server.id]: { 
+            success: true, 
+            message: `GitLab MCP server configured successfully! Found ${mockGitLabTools.length} available tools.`,
+            tools: mockGitLabTools
           }
         }));
       } else if (server.id === 'fetch-mcp' && server.command && server.args.length > 0) {
@@ -317,6 +440,15 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
           >
             <Plus className="w-4 h-4" />
             Add GitHub MCP
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={addGitLabMCP}
+            className="flex items-center gap-2 cursor-pointer hover:bg-primary hover:text-primary-foreground hover:border-primary hover:shadow-lg hover:scale-105 transition-all duration-200"
+          >
+            <Plus className="w-4 h-4" />
+            Add GitLab MCP
           </Button>
           <Button
             size="sm"

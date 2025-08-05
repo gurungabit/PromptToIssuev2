@@ -40,7 +40,7 @@ Add this to your MCP settings:
   "github-mcp": {
     "command": "uv",
     "args": ["run", "python", "github_mcp_server.py"],
-    "cwd": "/Users/abit/Desktop/cursor/PromptToIssueV2/prompt-to-issue/mcp/github-mcp",
+    "cwd": "./mcp/github-mcp",
     "env": {
       "GITHUB_TOKEN": "your_github_token_here"
     }
