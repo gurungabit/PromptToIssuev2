@@ -21,6 +21,7 @@ npm run db:setup         # Create tables and seed data
 
 # Dependencies
 npm run upackage         # Update all dependencies to latest versions
+npm run mcp:sync         # Sync MCP servers (GitHub and GitLab)
 ```
 
 ## Project Architecture
@@ -32,6 +33,7 @@ This is a Next.js 15 AI-powered ticket generation application with the following
 - **Next.js App Router**: Uses the new `app/` directory structure with API routes
 - **Single Table DynamoDB**: All entities stored in one table with strategic key patterns
 - **Multi-Provider LLM System**: Pluggable AI providers (OpenAI, Anthropic, Google, Ollama)
+- **MCP Server Integration**: GitHub and GitLab MCP servers for repository management
 - **Context-Based State**: React contexts for auth, chat, and toast management
 
 ### Key Patterns
@@ -58,6 +60,7 @@ This is a Next.js 15 AI-powered ticket generation application with the following
 - Chat API (`/api/chat`) handles both assistant and ticket generation modes
 - Dual persistence: saves user/assistant messages to DynamoDB
 - Provider validation before processing requests
+- MCP tool integration for GitHub/GitLab operations
 - Graceful error handling with database fallbacks
 
 ### Key Components
@@ -90,6 +93,15 @@ Required environment variables:
 3. Access application at `http://localhost:3000`
 
 The application automatically sets up database tables and seeds demo data on first run.
+
+### MCP Server Integration
+
+The project includes MCP (Model Context Protocol) server integration:
+
+- **GitHub MCP Server**: Located in `mcp/github-mcp/` - provides repository, issue, and file operations
+- **GitLab MCP Server**: Located in `mcp/gitlab-mcp/` - supports custom GitLab instances
+- **Tool Integration**: Chat API dynamically loads MCP tools based on enabled servers
+- **Security**: Uses environment variables for API tokens
 
 ### Adding New AI Providers
 
