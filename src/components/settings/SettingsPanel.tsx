@@ -96,10 +96,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
-      <div className="bg-background border rounded-lg shadow-lg w-full max-w-4xl h-[80vh] flex flex-col">
+    <div
+      className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-[99999] p-4"
+      style={{ backgroundColor: 'hsl(var(--chat-message-assistant) / 0.8)' }}
+    >
+      <div
+        className="border rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col fade-in"
+        style={{ background: 'hsl(var(--chat-message-assistant))' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b bg-background">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <Settings className="w-6 h-6" />
             <div>
@@ -120,7 +126,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b bg-background">
+        <div className="flex border-b border-border">
           <button
             className={cn(
               'px-6 py-3 text-sm font-medium border-b-2 transition-all duration-300 cursor-pointer hover:bg-accent/50',
@@ -158,7 +164,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto scroll-area p-6 bg-background">
+        <div className="flex-1 overflow-y-auto scroll-area p-6">
           {activeTab === 'providers' && (
             <div className="space-y-6">
               {/* Current Provider */}
@@ -338,10 +344,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                     {testResults[provider.id] && (
                       <div
                         className={cn(
-                          'mt-4 p-3 rounded-lg border flex items-center gap-2 animate-in fade-in-0 slide-in-from-top-1 duration-300',
+                          'mt-4 p-3 rounded-lg border-2 flex items-center gap-2 animate-in fade-in-0 slide-in-from-top-1 duration-300 font-semibold',
                           testResults[provider.id]?.success
-                            ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200'
-                            : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
+                            ? 'bg-green-200 border-green-500 !text-green-700 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200'
+                            : 'bg-red-200 border-red-500 !text-red-700 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
                         )}
                       >
                         {testResults[provider.id]?.success ? (
@@ -385,7 +391,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
           {activeTab === 'mcp' && (
             <div className="space-y-6">
-              <MCPSettings 
+              <MCPSettings
                 mcpServers={mcpConfig.servers}
                 mcpEnabled={mcpConfig.enabled}
                 onUpdateServers={updateMCPServers}
@@ -396,7 +402,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t bg-background">
+        <div className="flex justify-end gap-3 p-6 border-t border-border">
           <Button
             variant="outline"
             onClick={onClose}

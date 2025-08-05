@@ -159,11 +159,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, readOnly }) => {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 decoration-blue-500/30 hover:decoration-blue-500/60 transition-colors inline-flex items-center gap-1"
+        className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 decoration-blue-500/30 hover:decoration-blue-500/60 transition-colors inline-flex items-center gap-1 break-all"
         {...props}
       >
         {children}
-        <ExternalLink className="w-3 h-3 opacity-60" />
+        <ExternalLink className="w-3 h-3 opacity-60 flex-shrink-0" />
       </a>
     ),
 
@@ -279,11 +279,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, readOnly }) => {
   };
 
   return (
-    <div className={cn('group relative', isUser ? 'ml-16' : 'mr-16')}>
+    <div className={cn('group relative', isUser ? 'ml-8' : 'mr-8')}>
       <div
         className={cn(
           'flex gap-4 p-6 rounded-[24px]',
-          isUser ? 'chat-message-user ml-auto max-w-[80%]' : 'chat-message-assistant'
+          isUser ? 'chat-message-user ml-auto max-w-[85%]' : 'chat-message-assistant max-w-[85%]'
         )}
       >
         {/* Avatar */}

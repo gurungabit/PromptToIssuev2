@@ -156,8 +156,49 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
       // Simulate MCP server test - in real implementation, this would test the actual MCP connection
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Mock success for GitHub MCP if properly configured
-      if (server.id === 'github-mcp' && server.command && server.args.length > 0) {
+      // Validate GitHub MCP configuration
+      if (server.id === 'github-mcp') {
+        if (!server.command || server.args.length === 0) {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: { success: false, message: 'Missing command or arguments' }
+          }));
+          return;
+        }
+
+        const githubToken = server.env?.GITHUB_TOKEN;
+        if (!githubToken || githubToken === 'your_github_token_here') {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: { success: false, message: 'GitHub token is required. Please set GITHUB_TOKEN environment variable.' }
+          }));
+          return;
+        }
+
+        // Test the actual GitHub token
+        try {
+          const response = await fetch('https://api.github.com/user', {
+            headers: {
+              'Authorization': `token ${githubToken}`,
+              'User-Agent': 'MCP-GitHub-Test'
+            }
+          });
+
+          if (!response.ok) {
+            setTestResults(prev => ({
+              ...prev,
+              [server.id]: { success: false, message: `Invalid GitHub token: ${response.status} ${response.statusText}` }
+            }));
+            return;
+          }
+        } catch (error) {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: { success: false, message: 'Failed to validate GitHub token. Check your internet connection.' }
+          }));
+          return;
+        }
+
         const mockTools = [
           {
             name: 'list_repositories',
@@ -384,12 +425,12 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3 p-3 border rounded-lg hover:border-primary/50 transition-all duration-200 cursor-pointer hover:bg-accent/30"
                onClick={() => onUpdateMCPEnabled?.(!mcpEnabled)}>
-            {/* Toggle Switch */}
+            {/* Improved Toggle Switch */}
             <div className={cn(
               "relative w-11 h-6 rounded-full border-2 transition-all duration-300 cursor-pointer hover:scale-105",
               mcpEnabled 
-                ? "bg-primary border-primary shadow-lg" 
-                : "bg-muted border-muted-foreground hover:border-primary/50"
+                ? "bg-green-500 border-green-500 shadow-lg" 
+                : "bg-gray-600 border-gray-700 hover:border-primary/50"
             )}>
               <div className={cn(
                 "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-300 transform",
@@ -407,9 +448,6 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                 {mcpEnabled ? 'AI can use configured tools' : 'Click to enable tool access'}
               </span>
             </div>
-            {mcpEnabled && (
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-lg"></div>
-            )}
           </div>
         </div>
       </div>
@@ -648,10 +686,10 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
               <div className="mt-4 space-y-3 animate-in fade-in-0 slide-in-from-top-1 duration-300">
                 <div
                   className={cn(
-                    'p-3 rounded-lg border flex items-center gap-2',
+                    'p-3 rounded-lg border-2 flex items-center gap-2 font-semibold',
                     testResults[server.id]?.success
-                      ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200'
-                      : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
+                      ? 'bg-green-200 border-green-500 !text-green-700 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200'
+                      : 'bg-red-200 border-red-500 !text-red-700 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
                   )}
                 >
                   {testResults[server.id]?.success ? (
