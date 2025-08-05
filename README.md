@@ -63,12 +63,14 @@ npm run db:setup          # Create tables and seed data
 ### 4. Start Development
 
 **Terminal 1 - Database:**
+
 ```bash
 npm run dynamodb:start   # Start DynamoDB Local
 npm run db:setup          # First time: create tables and seed data
 ```
 
 **Terminal 2 - App:**
+
 ```bash
 npm run dev              # Start Next.js development server
 ```

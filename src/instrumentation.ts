@@ -6,4 +6,4 @@ export async function register() {
     const { initializeHttpAgent } = await import('./lib/http-agent');
     await initializeHttpAgent();
   }
-} 
+}

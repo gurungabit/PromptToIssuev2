@@ -26,7 +26,15 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
-  const { currentProvider, setProvider, providerConfigs, updateProviderConfig, mcpConfig, updateMCPServers, updateMCPConfig } = useChat();
+  const {
+    currentProvider,
+    setProvider,
+    providerConfigs,
+    updateProviderConfig,
+    mcpConfig,
+    updateMCPServers,
+    updateMCPConfig,
+  } = useChat();
 
   const [activeTab, setActiveTab] = useState<'providers' | 'platforms' | 'mcp'>('providers');
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
@@ -395,7 +403,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                 mcpServers={mcpConfig.servers}
                 mcpEnabled={mcpConfig.enabled}
                 onUpdateServers={updateMCPServers}
-                onUpdateMCPEnabled={(enabled) => updateMCPConfig({ enabled })}
+                onUpdateMCPEnabled={enabled => updateMCPConfig({ enabled })}
               />
             </div>
           )}

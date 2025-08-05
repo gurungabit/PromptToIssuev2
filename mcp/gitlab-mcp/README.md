@@ -17,17 +17,20 @@ A Model Context Protocol (MCP) server that provides GitLab API integration using
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 uv sync
 ```
 
 2. Set environment variables:
+
 ```bash
 export GITLAB_TOKEN="your_gitlab_token"
 export GITLAB_API_BASE="https://gitlab.com/api/v4"  # Optional, defaults to gitlab.com
 ```
 
 3. Run the server:
+
 ```bash
 uv run python gitlab_mcp_server.py
 ```
@@ -35,7 +38,7 @@ uv run python gitlab_mcp_server.py
 ## Available Tools
 
 - `list_projects(owner=None, per_page=30)` - List projects for a user/group or all accessible
-- `get_project_info(project_id)` - Get detailed project information  
+- `get_project_info(project_id)` - Get detailed project information
 - `list_issues(project_id, state="opened", per_page=30)` - List project issues
 - `create_issue(project_id, title, description="", labels=None, assignee_ids=None)` - Create new issue
 - `get_issue(project_id, issue_iid)` - Get specific issue details
@@ -73,6 +76,7 @@ export GITLAB_API_BASE="https://your-gitlab-instance.com/api/v4"
 ## Authentication
 
 Create a GitLab Personal Access Token with the following scopes:
+
 - `api` - Full API access
 - `read_repository` - Read repository files and metadata
 - `write_repository` - Create issues and merge requests (if needed)

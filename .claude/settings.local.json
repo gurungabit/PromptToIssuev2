@@ -1,9 +1,6 @@
 {
   "permissions": {
-    "allow": [
-      "Bash(rm:*)",
-      "Bash(npm install)"
-    ],
+    "allow": ["Bash(rm:*)", "Bash(npm install)", "Bash(npm run lint)"],
     "deny": []
   }
 }

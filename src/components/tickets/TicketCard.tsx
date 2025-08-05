@@ -39,7 +39,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
   const priorityDropdownOptions = priorityOptions.map(priority => ({
     value: priority,
     label: priority,
-    icon: <AlertTriangle className="w-3 h-3" />
+    icon: <AlertTriangle className="w-3 h-3" />,
   }));
 
   const handleSave = async () => {
@@ -185,7 +185,12 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
               <Dropdown
                 value={editedTicket.type}
                 options={typeDropdownOptions}
-                onChange={(value) => setEditedTicket(prev => ({ ...prev, type: value as (typeof typeOptions)[number] }))}
+                onChange={value =>
+                  setEditedTicket(prev => ({
+                    ...prev,
+                    type: value as (typeof typeOptions)[number],
+                  }))
+                }
                 size="sm"
               />
             ) : (
@@ -203,7 +208,12 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
               <Dropdown
                 value={editedTicket.priority}
                 options={priorityDropdownOptions}
-                onChange={(value) => setEditedTicket(prev => ({ ...prev, priority: value as (typeof priorityOptions)[number] }))}
+                onChange={value =>
+                  setEditedTicket(prev => ({
+                    ...prev,
+                    priority: value as (typeof priorityOptions)[number],
+                  }))
+                }
                 size="sm"
                 icon={<AlertTriangle className="w-3 h-3" />}
               />

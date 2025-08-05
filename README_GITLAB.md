@@ -33,7 +33,6 @@ The Prompt to Issue tool now includes full GitLab integration, allowing you to a
 ### Step 1: Configure GitLab Connection
 
 1. **Open Settings**
-
    - Click the settings icon in the top-right corner
    - Navigate to "Platform Connections" tab
 
@@ -44,7 +43,6 @@ The Prompt to Issue tool now includes full GitLab integration, allowing you to a
    ```
 
 3. **Create Personal Access Token**
-
    - Click "Create token" link or visit: `https://gitlab.com/-/profile/personal_access_tokens`
    - Create token with **"api"** scope
    - Copy the generated token
@@ -76,24 +74,20 @@ Ensure you have the following permissions in target projects:
 ### Creating GitLab Issues
 
 1. **Generate Tickets**
-
    - Switch to "Ticket Mode" in the chat interface
    - Describe your feature or requirements
    - Review generated tickets in the preview panel
 
 2. **Approve and Create**
-
    - Click "Approve & Create" button
    - Project Selection Modal opens automatically
 
 3. **Select Target Project**
-
    - Browse projects in the left panel
    - Use search to find specific projects
    - Or enter project ID directly in the input field
 
 4. **Choose Milestone (Optional)**
-
    - Select a milestone from the right panel
    - Search milestones by title
    - Choose "No Milestone" to create without milestone
@@ -183,11 +177,9 @@ The system caches milestones for 5 minutes per project to improve performance:
 For nested project structures like `root/subgroup/project`, the system automatically:
 
 1. **Fetches Project Milestones**
-
    - Direct milestones assigned to the project
 
 2. **Traverses Group Hierarchy**
-
    - Walks up the namespace tree
    - Fetches milestones from each parent group
 

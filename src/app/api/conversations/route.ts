@@ -29,10 +29,10 @@ export async function GET(request: NextRequest) {
 
     // Transform the data to match the expected format with message counts
     const transformedConversations = await Promise.all(
-      userConversations.map(async (conv) => {
+      userConversations.map(async conv => {
         const messageCount = await messageRepo.getMessageCount(conv.id);
         const lastMessage = await messageRepo.getLastMessage(conv.id);
-        
+
         return {
           id: conv.id,
           title: conv.title,
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       mode,
       provider,
       lastMessageAt: new Date().toISOString(),
-      isArchived: false
+      isArchived: false,
     });
 
     return NextResponse.json({

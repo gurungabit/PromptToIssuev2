@@ -16,7 +16,7 @@ npm run format:check     # Check code formatting
 # Database Operations
 npm run db:start         # Start DynamoDB Local and setup tables
 npm run db:up            # Start DynamoDB Local container
-npm run db:down          # Stop DynamoDB Local container  
+npm run db:down          # Stop DynamoDB Local container
 npm run db:setup         # Create tables and seed data
 
 # Dependencies
@@ -28,6 +28,7 @@ npm run upackage         # Update all dependencies to latest versions
 This is a Next.js 15 AI-powered ticket generation application with the following key architectural patterns:
 
 ### Core Structure
+
 - **Next.js App Router**: Uses the new `app/` directory structure with API routes
 - **Single Table DynamoDB**: All entities stored in one table with strategic key patterns
 - **Multi-Provider LLM System**: Pluggable AI providers (OpenAI, Anthropic, Google, Ollama)
@@ -36,8 +37,9 @@ This is a Next.js 15 AI-powered ticket generation application with the following
 ### Key Patterns
 
 **Database Schema (`src/lib/db/schema.ts`)**:
+
 - Single table design with PK/SK patterns:
-  - Users: `USER#userId` + `PROFILE` 
+  - Users: `USER#userId` + `PROFILE`
   - Settings: `USER#userId` + `SETTINGS`
   - Conversations: `USER#userId` + `CONV#timestamp#convId`
   - Messages: `CONV#convId` + `MSG#timestamp#msgId`
@@ -45,12 +47,14 @@ This is a Next.js 15 AI-powered ticket generation application with the following
   - Provider Configs: `USER#userId` + `PROVIDER#providerName`
 
 **LLM Provider System (`src/lib/llm/`)**:
+
 - Base provider interface with registry pattern
 - Each provider implements `BaseLLMProvider` interface
 - Factory functions for creating providers with custom configs
 - Default configurations for all supported providers
 
 **API Architecture**:
+
 - Chat API (`/api/chat`) handles both assistant and ticket generation modes
 - Dual persistence: saves user/assistant messages to DynamoDB
 - Provider validation before processing requests
@@ -59,11 +63,13 @@ This is a Next.js 15 AI-powered ticket generation application with the following
 ### Key Components
 
 **ChatInterface** (`src/components/chat/ChatInterface.tsx`):
+
 - Main chat UI with resizable ticket panel
 - Persists panel width to localStorage
 - Handles mode switching (assistant vs ticket)
 
 **Database Repositories** (`src/lib/db/repositories/`):
+
 - Repository pattern for each entity type
 - Consistent error handling and validation
 - Helper functions for key generation and item creation
@@ -71,6 +77,7 @@ This is a Next.js 15 AI-powered ticket generation application with the following
 ### Environment Configuration
 
 Required environment variables:
+
 - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` - AI provider keys
 - `DYNAMODB_ENDPOINT=http://localhost:8000` - Local DynamoDB endpoint
 - `DYNAMODB_TABLE_NAME=PromptToIssueTable` - Table name
@@ -95,6 +102,7 @@ The application automatically sets up database tables and seeds demo data on fir
 ### Testing and Quality
 
 Run linting and formatting before commits:
+
 ```bash
 npm run lint && npm run format:check
 ```

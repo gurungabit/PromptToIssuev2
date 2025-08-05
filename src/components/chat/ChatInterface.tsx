@@ -101,7 +101,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing) return;
-      
+
       const newWidth = window.innerWidth - e.clientX;
       const constrainedWidth = Math.min(Math.max(newWidth, MIN_PANEL_WIDTH), MAX_PANEL_WIDTH);
       setTicketPanelWidth(constrainedWidth);
@@ -544,7 +544,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
               style={{
                 width: ticketPanelCollapsed ? '48px' : `${ticketPanelWidth}px`,
                 minWidth: ticketPanelCollapsed ? '48px' : `${MIN_PANEL_WIDTH}px`,
-                maxWidth: ticketPanelCollapsed ? '48px' : `${MAX_PANEL_WIDTH}px`
+                maxWidth: ticketPanelCollapsed ? '48px' : `${MAX_PANEL_WIDTH}px`,
               }}
             >
               {/* Resize Handle */}

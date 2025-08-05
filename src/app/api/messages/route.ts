@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
       targetUserId = 'user-id-placeholder';
     }
 
-    const existingConversation = await conversationRepo.getConversationById(conversationId, targetUserId);
+    const existingConversation = await conversationRepo.getConversationById(
+      conversationId,
+      targetUserId
+    );
 
     if (!existingConversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
