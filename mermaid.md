@@ -33,6 +33,14 @@ graph TB
 
     subgraph "External APIs"
         OPENAI[OpenAI API<br/>GPT Models]
+        ANTHROPIC[Anthropic API<br/>Claude Models]
+        GOOGLE[Google API<br/>Gemini Models]
+        OLLAMA[Ollama<br/>Local Models]
+    end
+
+    subgraph "MCP Servers"
+        MCP_GH[GitHub MCP<br/>Repository Operations<br/>Issue Management]
+        MCP_GL[GitLab MCP<br/>Custom Instance Support<br/>Project Operations]
     end
 
     WB --> OR
@@ -46,7 +54,13 @@ graph TB
 
     APP1 --> DDB
     APP1 --> OPENAI
-    APP1 --> GITLAB
+    APP1 --> ANTHROPIC
+    APP1 --> GOOGLE
+    APP1 --> OLLAMA
+    APP1 --> MCP_GH
+    APP1 --> MCP_GL
+    MCP_GH --> GITHUB[GitHub API]
+    MCP_GL --> GITLAB[GitLab API]
 
 
     classDef frontend fill:#e1f5fe
@@ -54,12 +68,14 @@ graph TB
     classDef auth fill:#f3e5f5
     classDef database fill:#e8f5e8
     classDef external fill:#fff8e1
+    classDef mcp fill:#f0f4c3
 
     class WB frontend
     class OR,OS,APP1,APP2,APP3 openshift
     class ENTRAID auth
     class DDB database
-    class OPENAI,ANTHROPIC,GOOGLE,OLLAMA,GITLAB external
+    class OPENAI,ANTHROPIC,GOOGLE,OLLAMA,GITHUB,GITLAB external
+    class MCP_GH,MCP_GL mcp
 ```
 
 ## Authentication Flow with EntraID
@@ -98,8 +114,25 @@ flowchart TD
 
     SAVE_MSG --> LLM_SELECT{Select LLM Provider}
     LLM_SELECT -->|OpenAI| OPENAI[Call OpenAI API]
+    LLM_SELECT -->|Anthropic| ANTHROPIC[Call Anthropic API]
+    LLM_SELECT -->|Google| GOOGLE[Call Google API]
+    LLM_SELECT -->|Ollama| OLLAMA[Call Ollama API]
 
-    OPENAI --> PROCESS[Process AI Response]
+    OPENAI --> MCP_TOOLS{MCP Tools Available?}
+    ANTHROPIC --> MCP_TOOLS
+    GOOGLE --> MCP_TOOLS
+    OLLAMA --> MCP_TOOLS
+
+    MCP_TOOLS -->|Yes| LOAD_MCP[Load GitHub/GitLab MCP Tools]
+    MCP_TOOLS -->|No| PROCESS[Process AI Response]
+    
+    LOAD_MCP --> MCP_CALL{AI Requests MCP Tool?}
+    MCP_CALL -->|GitHub| GITHUB_MCP[Execute GitHub MCP Tool]
+    MCP_CALL -->|GitLab| GITLAB_MCP[Execute GitLab MCP Tool]
+    MCP_CALL -->|None| PROCESS
+    
+    GITHUB_MCP --> PROCESS
+    GITLAB_MCP --> PROCESS
 
     PROCESS --> SAVE_RESPONSE[Save AI Response to DynamoDB]
     SAVE_RESPONSE --> CHECK_TICKET{Generate Ticket?}
@@ -108,12 +141,14 @@ flowchart TD
     CHECK_TICKET -->|Yes| GENERATE_TICKET[Generate Ticket Content]
 
     GENERATE_TICKET --> SAVE_TICKET[Save Ticket to DynamoDB]
-    SAVE_TICKET --> GITLAB_CREATE{Create GitLab Issue?}
+    SAVE_TICKET --> REPO_CREATE{Create Repository Issue?}
 
-    GITLAB_CREATE -->|No| DISPLAY_TICKET[Display Ticket to User]
-    GITLAB_CREATE -->|Yes| GITLAB_API[Call GitLab API]
+    REPO_CREATE -->|No| DISPLAY_TICKET[Display Ticket to User]
+    REPO_CREATE -->|GitHub via MCP| GITHUB_ISSUE[Create GitHub Issue via MCP]
+    REPO_CREATE -->|GitLab via MCP| GITLAB_ISSUE[Create GitLab Issue via MCP]
 
-    GITLAB_API --> UPDATE_TICKET[Update Ticket with GitLab ID]
+    GITHUB_ISSUE --> UPDATE_TICKET[Update Ticket with Issue ID]
+    GITLAB_ISSUE --> UPDATE_TICKET
     UPDATE_TICKET --> DISPLAY_COMPLETE[Display Complete Result]
 
     DISPLAY --> INPUT
@@ -124,10 +159,12 @@ flowchart TD
     classDef decision fill:#fff3e0
     classDef external fill:#f3e5f5
     classDef error fill:#ffebee
+    classDef mcp fill:#f0f4c3
 
     class SAVE_MSG,PROCESS,SAVE_RESPONSE,GENERATE_TICKET,SAVE_TICKET,UPDATE_TICKET process
-    class VALIDATE,LLM_SELECT,CHECK_TICKET,GITLAB_CREATE decision
-    class OPENAI,GITLAB_API external
+    class VALIDATE,LLM_SELECT,CHECK_TICKET,REPO_CREATE,MCP_TOOLS,MCP_CALL decision
+    class OPENAI,ANTHROPIC,GOOGLE,OLLAMA external
+    class LOAD_MCP,GITHUB_MCP,GITLAB_MCP,GITHUB_ISSUE,GITLAB_ISSUE mcp
     class AUTH_ERROR error
 ```
 
@@ -370,4 +407,56 @@ flowchart TB
     class PSP,NETWORK,JWT,ENTRAID,SESSION security
     class SECRETS,DDB,TLS data
     class AUDIT,SIEM,INCIDENT monitor
+```
+
+## MCP Tool Integration Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Chat API
+    participant M as MCP Manager
+    participant GH as GitHub MCP Server
+    participant GL as GitLab MCP Server
+    participant LLM as LLM Provider
+    participant DB as DynamoDB
+
+    Note over C,DB: User sends message requesting repository operation
+    
+    C->>DB: Save user message
+    C->>M: Initialize MCP servers
+    
+    M->>GH: Start GitHub MCP server
+    GH->>M: Register GitHub tools
+    
+    M->>GL: Start GitLab MCP server  
+    GL->>M: Register GitLab tools
+    
+    M->>C: Return available MCP tools
+    
+    C->>LLM: Send message + available tools
+    
+    alt LLM requests GitHub operation
+        LLM->>C: Tool call: github_list_repos
+        C->>M: Execute GitHub MCP tool
+        M->>GH: Call list_repos tool
+        GH->>GH: Authenticate with GitHub API
+        GH-->>M: Return repository list
+        M-->>C: Return tool result
+        C->>LLM: Provide tool result
+        LLM->>C: Generate response with repo info
+    else LLM requests GitLab operation
+        LLM->>C: Tool call: gitlab_create_issue
+        C->>M: Execute GitLab MCP tool
+        M->>GL: Call create_issue tool
+        GL->>GL: Authenticate with GitLab API
+        GL-->>M: Return created issue
+        M-->>C: Return tool result
+        C->>LLM: Provide tool result
+        LLM->>C: Generate response with issue link
+    else No tool required
+        LLM->>C: Generate standard response
+    end
+    
+    C->>DB: Save assistant response
+    C-->>C: Return response to user
 ```

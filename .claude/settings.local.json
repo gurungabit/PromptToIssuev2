@@ -6,7 +6,8 @@
       "Bash(npm run lint)",
       "Bash(ls:*)",
       "Bash(npm run:*)",
-      "Bash(uv:*)"
+      "Bash(uv:*)",
+      "Bash(sed:*)"
     ],
     "deny": []
   }
