@@ -1,4 +1,4 @@
-import { BaseLLMProvider, type LLMMessage, type LLMRequestConfig } from '../base';
+import { BaseLLMProvider, LLMTool, type LLMMessage, type LLMRequestConfig } from '../base';
 import type { LLMConfig, ChatMode, AIResponse } from '../../schemas';
 import { getAvailableModels, mapModelId } from '../provider-models';
 
@@ -89,7 +89,7 @@ export class AideProvider extends BaseLLMProvider {
       throw new Error('AIDE API token not configured');
     }
 
-    const systemPrompt = this.buildSystemPrompt(mode, requestConfig?.tools);
+    const systemPrompt = this.buildAideSystemPrompt(mode, requestConfig?.tools);
     
     // Convert messages to Anthropic format, filtering out system messages
     // as they'll be handled separately in the system prompt
@@ -373,6 +373,8 @@ export class AideProvider extends BaseLLMProvider {
         if (textContent.includes('<function_calls>')) {
           const toolCalls = [];
           
+          // Note: We now prevent hallucinations via system prompt, but still extract tool calls
+          
           // Extract all function calls using regex
           const functionCallRegex = /<invoke name="([^"]+)"[^>]*>(.*?)<\/invoke>/g;
           let match;
@@ -444,6 +446,49 @@ export class AideProvider extends BaseLLMProvider {
       name: call.name,
       input: call.input
     }));
+  }
+
+  private buildAideSystemPrompt(mode: ChatMode, tools?: LLMTool[]): string {
+    if (mode === 'ticket') {
+      return this.buildSystemPrompt(mode, tools);
+    }
+
+    let systemPrompt = this.buildSystemPrompt(mode, tools);
+
+    // Add AIDE-specific instructions to prevent hallucinated tool results
+    if (tools && tools.length > 0) {
+      systemPrompt += `
+
+## CRITICAL: Tool Usage Rules for AIDE
+
+VERY IMPORTANT: When you make a tool call, you MUST:
+1. ONLY include the <function_calls> block with <invoke> tags
+2. NEVER include <function_result> tags in your response
+3. NEVER simulate or fake tool results
+4. Wait for the actual tool results to be provided to you
+5. Do not provide any response content after the tool call until you receive real results
+
+Example of CORRECT tool usage:
+<function_calls>
+<invoke name="list_projects">
+<parameter name="per_page">30</parameter>
+</invoke>
+</function_calls>
+
+Example of INCORRECT (DO NOT DO):
+<function_calls>
+<invoke name="list_projects">
+...
+</invoke>
+</function_calls>
+<function_result>
+{fake data here}
+</function_result>
+
+REMEMBER: Make the tool call and stop. Do not simulate results.`;
+    }
+
+    return systemPrompt;
   }
 }
 
