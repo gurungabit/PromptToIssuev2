@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { BaseLLMProvider, type LLMMessage, type LLMRequestConfig } from '../base';
 import type { LLMConfig, ChatMode, AIResponse } from '../../schemas';
+import { getAvailableModels, getDefaultModel } from '../provider-models';
 
 export class OpenAIProvider extends BaseLLMProvider {
   private client: OpenAI | null = null;
@@ -46,18 +47,7 @@ export class OpenAIProvider extends BaseLLMProvider {
   }
 
   async getAvailableModels(): Promise<string[]> {
-    if (!this.client) return [];
-
-    try {
-      const response = await this.client.models.list();
-      return response.data
-        .filter(model => model.id.includes('gpt'))
-        .map(model => model.id)
-        .sort();
-    } catch (error) {
-      console.error('Failed to fetch OpenAI models:', error);
-      return ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo-preview'];
-    }
+    return getAvailableModels('openai');
   }
 
   async generateResponse(

@@ -1,0 +1,258 @@
+import { BaseLLMProvider, type LLMMessage, type LLMRequestConfig } from '../base';
+import type { LLMConfig, ChatMode, AIResponse } from '../../schemas';
+import { getAvailableModels, mapModelId } from '../provider-models';
+
+export class AideProvider extends BaseLLMProvider {
+  private baseUrl: string;
+  private useCaseId: string;
+  private solmaId: string;
+  private authToken: string;
+
+  constructor(config: LLMConfig) {
+    super(config);
+    this.baseUrl = config.baseUrl || 'https://aide-llm-api-qa-aide-llm-api-qa.apps.pcrosa01.redk8s.test.ic1.statefarm';
+    this.useCaseId = process.env.AIDE_USECASE_ID || 'RITM4953265';
+    this.solmaId = process.env.AIDE_SOLMA_ID || '123456';
+    this.authToken = config.apiKey || '';
+  }
+
+  getProviderId(): string {
+    return 'aide';
+  }
+
+  getProviderName(): string {
+    return 'AIDE (Enterprise Claude)';
+  }
+
+  async validateConfiguration(): Promise<boolean> {
+    return !!(this.authToken && this.baseUrl && this.useCaseId);
+  }
+
+  async testConnection(): Promise<{ success: boolean; error?: string }> {
+    if (!this.authToken) {
+      return {
+        success: false,
+        error: 'AIDE API token not configured. Please check your API key.',
+      };
+    }
+
+    try {
+      const testPayload = this.buildAidePayload(
+        [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
+        'claude-3-haiku-20240307',
+        10
+      );
+
+      const response = await fetch(`${this.baseUrl}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'usecaseid': this.useCaseId,
+          'Authorization': `Bearer ${this.authToken}`,
+        },
+        body: JSON.stringify(testPayload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return {
+          success: false,
+          error: `AIDE API error: ${response.status} - ${errorText}`,
+        };
+      }
+
+      return { success: true };
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to connect to AIDE API';
+      return {
+        success: false,
+        error: errorMessage,
+      };
+    }
+  }
+
+  async getAvailableModels(): Promise<string[]> {
+    return getAvailableModels('aide');
+  }
+
+  async generateResponse(
+    messages: LLMMessage[],
+    mode: ChatMode,
+    requestConfig?: LLMRequestConfig
+  ): Promise<AIResponse> {
+    if (!this.authToken) {
+      throw new Error('AIDE API token not configured');
+    }
+
+    const systemPrompt = this.buildSystemPrompt(mode, requestConfig?.tools);
+    
+    // Convert messages to Anthropic format, filtering out system messages
+    // as they'll be handled separately in the system prompt
+    const anthropicMessages: Array<{ role: string; content: Array<{ type: string; text: string }> }> = [];
+    
+    // Add system prompt as first user message if not empty
+    if (systemPrompt) {
+      anthropicMessages.push({
+        role: 'user',
+        content: [{ type: 'text', text: systemPrompt }],
+      });
+      anthropicMessages.push({
+        role: 'assistant',
+        content: [{ type: 'text', text: 'Understood. I\'m ready to help you.' }],
+      });
+    }
+
+    // Add conversation messages
+    messages
+      .filter(msg => msg.role !== 'system')
+      .forEach(msg => {
+        anthropicMessages.push({
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
+          content: [{ type: 'text', text: msg.content }],
+        });
+      });
+
+    const modelName = requestConfig?.model || this.config.model || 'us.anthropic.claude-sonnet-4-20250514-v1:0';
+    const modelId = mapModelId('aide', modelName);
+    const maxTokens = requestConfig?.maxTokens || this.config.maxTokens || 4000;
+
+    const payload = this.buildAidePayload(anthropicMessages, modelId, maxTokens, requestConfig?.temperature);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'usecaseid': this.useCaseId,
+          'Authorization': `Bearer ${this.authToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`AIDE API error: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      
+      // Extract the response content from AIDE's nested structure
+      const content = this.extractResponseContent(result);
+      
+      return this.parseResponse(content, mode);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('AIDE API error:', error);
+
+      if (mode === 'ticket') {
+        return {
+          type: 'tickets',
+          tickets: [],
+          reasoning: `Error generating tickets: ${errorMessage}`,
+          needsClarification: true,
+          clarificationQuestions: ['Could you please try again with a different description?'],
+        };
+      } else {
+        return {
+          type: 'assistant',
+          content: `I apologize, but I encountered an error: ${errorMessage}. Please try again.`,
+          suggestions: ['Try rephrasing your question', 'Check if the service is available'],
+        };
+      }
+    }
+  }
+
+  private buildAidePayload(
+    messages: Array<{ role: string; content: Array<{ type: string; text: string }> }>,
+    modelId: string,
+    maxTokens: number,
+    temperature?: number
+  ) {
+    return {
+      aide: {
+        scrub_input: true,
+        apply_guardrail: true,
+        fail_on_scrub: true,
+      },
+      gaas: {
+        guardrailsEnabled: false,
+        scrubInput: false,
+        scrubbingTimeoutSeconds: 8,
+        pathToPrompt: "aws.bedrock.invoke.body.messages[*].content[*].text",
+        logMetadata: {
+          solmaId: this.solmaId,
+        },
+      },
+      aws: {
+        bedrock: {
+          invoke: {
+            modelId: modelId,
+            body: {
+              anthropic_version: "bedrock-2023-05-31",
+              max_tokens: maxTokens,
+              temperature: temperature ?? this.config.temperature ?? 0.7,
+              messages: messages,
+            },
+          },
+        },
+      },
+    };
+  }
+
+
+  private extractResponseContent(result: unknown): string {
+    try {
+      // AIDE returns response in this structure:
+      // { aide: {...}, gaas: {...}, aws: { content: [{ type: "text", text: "..." }] } }
+      if (typeof result === 'object' && result !== null) {
+        const resultObj = result as Record<string, unknown>;
+        
+        // Check for the new AIDE response format with aws.content
+        if (resultObj.aws && typeof resultObj.aws === 'object' && resultObj.aws !== null) {
+          const aws = resultObj.aws as Record<string, unknown>;
+          if (Array.isArray(aws.content) && aws.content[0] && typeof aws.content[0] === 'object') {
+            const content = aws.content[0] as Record<string, unknown>;
+            if (content.type === 'text' && typeof content.text === 'string') {
+              return content.text;
+            }
+          }
+        }
+        
+        // Fallback: Check for direct content array (older format)
+        if (Array.isArray(resultObj.content) && resultObj.content[0] && typeof resultObj.content[0] === 'object') {
+          const content = resultObj.content[0] as Record<string, unknown>;
+          if (typeof content.text === 'string') {
+            return content.text;
+          }
+        }
+        
+        // Fallback: Check for body.content (another possible format)
+        if (resultObj.body && typeof resultObj.body === 'object' && resultObj.body !== null) {
+          const body = resultObj.body as Record<string, unknown>;
+          if (Array.isArray(body.content) && body.content[0] && typeof body.content[0] === 'object') {
+            const content = body.content[0] as Record<string, unknown>;
+            if (typeof content.text === 'string') {
+              return content.text;
+            }
+          }
+        }
+      }
+      
+      // If we can't find the expected structure, try to stringify the response
+      if (typeof result === 'string') {
+        return result;
+      }
+      
+      // Last resort - return the entire result as a string for debugging
+      return JSON.stringify(result, null, 2);
+    } catch (error) {
+      console.error('Error extracting AIDE response content:', error);
+      return 'Error parsing response from AIDE API';
+    }
+  }
+}
+
+export const createAideProvider = async (config: LLMConfig): Promise<AideProvider> => {
+  return new AideProvider(config);
+};

@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { BaseLLMProvider, type LLMMessage, type LLMRequestConfig } from '../base';
 import type { LLMConfig, ChatMode, AIResponse } from '../../schemas';
+import { getAvailableModels, getDefaultModel } from '../provider-models';
 
 export class AnthropicProvider extends BaseLLMProvider {
   private client: Anthropic | null = null;
@@ -37,7 +38,7 @@ export class AnthropicProvider extends BaseLLMProvider {
     try {
       // Test with a simple message
       await this.client.messages.create({
-        model: this.config.model || 'claude-3-haiku-20240307',
+        model: this.config.model || getDefaultModel('anthropic'),
         max_tokens: 10,
         messages: [{ role: 'user', content: 'Hello' }],
       });
@@ -53,14 +54,7 @@ export class AnthropicProvider extends BaseLLMProvider {
   }
 
   async getAvailableModels(): Promise<string[]> {
-    // Anthropic doesn't have a models endpoint, so we return known models
-    return [
-      'claude-3-opus-20240229',
-      'claude-3-sonnet-20240229',
-      'claude-3-haiku-20240307',
-      'claude-2.1',
-      'claude-2.0',
-    ];
+    return getAvailableModels('anthropic');
   }
 
   async generateResponse(

@@ -139,6 +139,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       maxTokens: 4000,
       temperature: 0.7,
     },
+    aide: {
+      provider: 'aide',
+      model: 'claude-4-sonnet',
+      maxTokens: 4000,
+      temperature: 0.7,
+    },
   });
 
   const [gitlabConfig, setGitlabConfig] = useState<GitLabConfig | null>(null);

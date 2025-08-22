@@ -5,7 +5,7 @@ export const ChatModeSchema = z.enum(['ticket', 'assistant']);
 export type ChatMode = z.infer<typeof ChatModeSchema>;
 
 // LLM Provider Types
-export const LLMProviderSchema = z.enum(['openai', 'anthropic', 'google', 'ollama']);
+export const LLMProviderSchema = z.enum(['openai', 'anthropic', 'google', 'ollama', 'aide']);
 export type LLMProvider = z.infer<typeof LLMProviderSchema>;
 
 // Message Types

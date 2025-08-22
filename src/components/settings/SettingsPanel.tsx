@@ -48,6 +48,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
     { id: 'anthropic', name: 'Anthropic (Claude)', icon: <Bot className="w-5 h-5" /> },
     { id: 'google', name: 'Google (Gemini)', icon: <Bot className="w-5 h-5" /> },
     { id: 'ollama', name: 'Ollama (Local)', icon: <Bot className="w-5 h-5" /> },
+    { id: 'aide', name: 'AIDE (Enterprise Claude)', icon: <Bot className="w-5 h-5" /> },
   ];
 
   const handleProviderConfigUpdate = (

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { BaseLLMProvider, type LLMMessage, type LLMRequestConfig } from '../base';
 import type { LLMConfig, ChatMode, AIResponse } from '../../schemas';
+import { getAvailableModels, getDefaultModel } from '../provider-models';
 
 export class OllamaProvider extends BaseLLMProvider {
   private baseUrl: string;
@@ -41,7 +42,7 @@ export class OllamaProvider extends BaseLLMProvider {
       }
 
       // Then, check if the specified model exists
-      const modelName = this.config.model || 'mistral:latest';
+      const modelName = this.config.model || getDefaultModel('ollama');
       try {
         const modelsResponse = await axios.get(`${this.baseUrl}/api/tags`, {
           timeout: 10000,
@@ -80,6 +81,7 @@ export class OllamaProvider extends BaseLLMProvider {
   }
 
   async getAvailableModels(): Promise<string[]> {
+    // Try to get real models from Ollama, fallback to config
     try {
       const response = await axios.get(`${this.baseUrl}/api/tags`, {
         timeout: 10000,
@@ -88,12 +90,12 @@ export class OllamaProvider extends BaseLLMProvider {
       if (response.data?.models) {
         return response.data.models.map((model: { name: string }) => model.name);
       }
-
-      return ['mistral:latest', 'llama2', 'codellama', 'neural-chat'];
     } catch (error) {
       console.error('Failed to fetch Ollama models:', error);
-      return ['mistral:latest', 'llama2', 'codellama', 'neural-chat'];
     }
+    
+    // Fallback to configured models
+    return getAvailableModels('ollama');
   }
 
   async generateResponse(

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Settings, Sparkles, Ticket, MessageSquare, ChevronDown, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { getAvailableModels, shouldShowModelSelector, getModelDisplayName, getEnabledProviders } from '@/lib/llm/provider-models';
 
 interface ChatInterfaceProps {
   onOpenSettings?: () => void;
@@ -28,6 +29,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
     pendingTickets,
     sendMessage,
     currentConversationId,
+    providerConfigs,
+    updateProviderConfig,
   } = useChat();
 
   const { user, logout } = useAuth();
@@ -35,8 +38,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const providerMenuRef = useRef<HTMLDivElement>(null);
+  const modelMenuRef = useRef<HTMLDivElement>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showProviderMenu, setShowProviderMenu] = useState(false);
+  const [showModelMenu, setShowModelMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [ticketPanelCollapsed, setTicketPanelCollapsed] = useState(false);
   const [ticketPanelWidth, setTicketPanelWidth] = useState(() => {
@@ -88,6 +93,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showProviderMenu]);
+
+  // Close model menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modelMenuRef.current && !modelMenuRef.current.contains(event.target as Node)) {
+        setShowModelMenu(false);
+      }
+    };
+
+    if (showModelMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showModelMenu]);
 
   // Resize functionality for ticket panel
   const MIN_PANEL_WIDTH = 300;
@@ -143,6 +165,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
         return 'Gemini';
       case 'ollama':
         return 'Ollama';
+      case 'aide':
+        return 'AIDE';
       default:
         return provider;
     }
@@ -154,9 +178,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
       anthropic: <Sparkles className="w-4 h-4" />,
       google: <Sparkles className="w-4 h-4" />,
       ollama: <Sparkles className="w-4 h-4" />,
+      aide: <Sparkles className="w-4 h-4" />,
     };
 
     return iconMap[provider] || <Sparkles className="w-4 h-4" />;
+  };
+
+
+  const getCurrentModel = () => {
+    return providerConfigs[currentProvider]?.model || getAvailableModels(currentProvider)[0] || '';
+  };
+
+  const setCurrentModel = (model: string) => {
+    updateProviderConfig(currentProvider, { model });
   };
 
   const hasMessages = messages.length > 0;
@@ -451,6 +485,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
                 <div className="relative">
                   {/* Provider & Mode Controls - integrated into input */}
                   <div className="absolute -top-12 left-0 right-0 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                     {/* Provider Selector - minimal */}
                     <div className="relative" ref={providerMenuRef}>
                       <Button
@@ -466,24 +501,59 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onOpenSettings }) => {
                       {showProviderMenu && (
                         <div className="absolute bottom-full left-0 mb-2 w-44 glass rounded-[16px] shadow-xl z-50">
                           <div className="p-2 space-y-1">
-                            {(['openai', 'anthropic', 'google', 'ollama'] as const).map(
-                              provider => (
-                                <button
-                                  key={provider}
-                                  className="w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-accent rounded-[8px] transition-colors cursor-pointer hover:scale-110 hover:shadow-md"
-                                  onClick={() => {
-                                    setProvider(provider);
-                                    setShowProviderMenu(false);
-                                  }}
-                                >
-                                  {getProviderIcon(provider)}
-                                  {getProviderDisplayName(provider)}
-                                </button>
-                              )
-                            )}
+                            {getEnabledProviders().map(provider => (
+                              <button
+                                key={provider}
+                                className="w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-accent rounded-[8px] transition-colors cursor-pointer hover:scale-110 hover:shadow-md"
+                                onClick={() => {
+                                  setProvider(provider);
+                                  setShowProviderMenu(false);
+                                }}
+                              >
+                                {getProviderIcon(provider)}
+                                {getProviderDisplayName(provider)}
+                              </button>
+                            ))}
                           </div>
                         </div>
                       )}
+                    </div>
+
+                    {/* Model Selector - minimal - only show if enabled for provider */}
+                    {shouldShowModelSelector(currentProvider) && (
+                      <div className="relative" ref={modelMenuRef}>
+                        <Button
+                          variant="ghost"
+                          onClick={() => setShowModelMenu(!showModelMenu)}
+                          className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-[12px] cursor-pointer hover:scale-110 hover:shadow-md"
+                        >
+                          {getModelDisplayName(getCurrentModel()) || 'Model'}
+                          <ChevronDown className="w-3 h-3" />
+                        </Button>
+
+                        {showModelMenu && (
+                          <div className="absolute bottom-full left-0 mb-2 w-48 glass rounded-[16px] shadow-xl z-50">
+                            <div className="p-2 space-y-1 max-h-60 overflow-y-auto scroll-area">
+                              {getAvailableModels(currentProvider).map(model => (
+                                <button
+                                  key={model}
+                                  className={cn(
+                                    "w-full flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-accent rounded-[8px] transition-colors cursor-pointer hover:scale-105 hover:shadow-md text-left",
+                                    getCurrentModel() === model && "bg-accent text-accent-foreground"
+                                  )}
+                                  onClick={() => {
+                                    setCurrentModel(model);
+                                    setShowModelMenu(false);
+                                  }}
+                                >
+                                  {getModelDisplayName(model)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     </div>
 
                     {/* Mode Toggle - minimal */}
