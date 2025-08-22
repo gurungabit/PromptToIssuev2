@@ -6,6 +6,8 @@ export interface ProviderModelConfig {
   showModelSelector: boolean; // Toggle to enable/disable model selection
   defaultModel: string;
   enabled: boolean; // Toggle to enable/disable entire provider
+  displayName: string; // Display name for UI
+  description?: string; // Optional description
 }
 
 // Simplified provider/model mapping
@@ -14,25 +16,33 @@ export const PROVIDER_MODELS: Record<LLMProvider, ProviderModelConfig> = {
     models: [''],
     showModelSelector: false,
     defaultModel: 'gpt-3.5-turbo',
-    enabled: false, 
+    enabled: false,
+    displayName: 'OpenAI',
+    description: 'OpenAI GPT models',
   },
   anthropic: {
     models: [''],
     showModelSelector: false,
     defaultModel: 'claude-3-haiku-20240307',
-    enabled: false, 
+    enabled: false,
+    displayName: 'Anthropic (Claude)',
+    description: 'Anthropic Claude models',
   },
   google: {
     models: ['gemini-2.0-flash'],
     showModelSelector: true,
     defaultModel: 'gemini-2.0-flash',
     enabled: true,
+    displayName: 'Google (Gemini)',
+    description: 'Google Gemini models',
   },
   ollama: {
     models: [],
     showModelSelector: false,
     defaultModel: 'mistral:latest',
-    enabled: false, 
+    enabled: false,
+    displayName: 'Ollama (Local)',
+    description: 'Local Ollama models',
   },
   aide: {
     // Using the modelIds from AIDE provider file
@@ -47,9 +57,11 @@ export const PROVIDER_MODELS: Record<LLMProvider, ProviderModelConfig> = {
       'us.anthropic.claude-sonnet-4-20250514-v1:0',
       'us.anthropic.claude-opus-4-20250514-v1:0',
     ],
-    showModelSelector: true, 
+    showModelSelector: true,
     defaultModel: 'us.anthropic.claude-sonnet-4-20250514-v1:0',
-    enabled: true, 
+    enabled: true,
+    displayName: 'AIDE (Enterprise Claude)',
+    description: 'Enterprise Claude models through AIDE',
   },
 };
 
@@ -114,4 +126,16 @@ export const getEnabledProviders = (): LLMProvider[] => {
   return (Object.keys(PROVIDER_MODELS) as LLMProvider[]).filter(provider => 
     PROVIDER_MODELS[provider].enabled
   );
+};
+
+export const getProviderDisplayName = (provider: LLMProvider): string => {
+  return PROVIDER_MODELS[provider]?.displayName || provider;
+};
+
+export const getProviderDescription = (provider: LLMProvider): string => {
+  return PROVIDER_MODELS[provider]?.description || '';
+};
+
+export const getProviderConfig = (provider: LLMProvider): ProviderModelConfig | undefined => {
+  return PROVIDER_MODELS[provider];
 };

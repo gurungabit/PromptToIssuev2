@@ -37,9 +37,13 @@ export class AideProvider extends BaseLLMProvider {
     }
 
     try {
+      // Use the configured model or default
+      const modelName = this.config.model || 'us.anthropic.claude-sonnet-4-20250514-v1:0';
+      const modelId = mapModelId('aide', modelName);
+      
       const testPayload = this.buildAidePayload(
         [{ role: 'user', content: [{ type: 'text', text: 'Hello' }] }],
-        'claude-3-haiku-20240307',
+        modelId,
         10
       );
 
