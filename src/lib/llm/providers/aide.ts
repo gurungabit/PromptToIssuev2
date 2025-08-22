@@ -404,8 +404,10 @@ export class AideProvider extends BaseLLMProvider {
               }
             }
             
+            // Generate a unique ID matching Bedrock pattern ^[a-zA-Z0-9_-]+$
+            const randomId = Math.random().toString(36).substring(2, 15);
             toolCalls.push({
-              id: `tool_${Date.now()}_${Math.random()}`, // Generate a unique ID
+              id: `tool_${Date.now()}_${randomId}`,
               name: toolName,
               input: parameters
             });
