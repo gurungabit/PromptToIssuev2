@@ -373,13 +373,17 @@ export class AideProvider extends BaseLLMProvider {
         if (textContent.includes('<function_calls>')) {
           const toolCalls = [];
           
-          // Note: We now prevent hallucinations via system prompt, but still extract tool calls
+          // Extract only the function_calls section, ignore any hallucinated function_result
+          const functionCallsMatch = textContent.match(/<function_calls>([\s\S]*?)<\/function_calls>/);
+          if (!functionCallsMatch) return null;
+          
+          const functionCallsXml = functionCallsMatch[1];
           
           // Extract all function calls using regex
-          const functionCallRegex = /<invoke name="([^"]+)"[^>]*>(.*?)<\/invoke>/g;
+          const functionCallRegex = /<invoke name="([^"]+)"[^>]*>([\s\S]*?)<\/invoke>/g;
           let match;
           
-          while ((match = functionCallRegex.exec(textContent)) !== null) {
+          while ((match = functionCallRegex.exec(functionCallsXml)) !== null) {
             const toolName = match[1];
             const parametersXml = match[2];
             
