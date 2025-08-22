@@ -93,7 +93,7 @@ export class AideProvider extends BaseLLMProvider {
     
     // Convert messages to Anthropic format, filtering out system messages
     // as they'll be handled separately in the system prompt
-    const anthropicMessages: Array<{ role: string; content: Array<{ type: string; text: string }> }> = [];
+    const anthropicMessages: Array<{ role: string; content: Array<Record<string, unknown>> }> = [];
     
     // Add system prompt as first user message if not empty
     if (systemPrompt) {
@@ -121,7 +121,14 @@ export class AideProvider extends BaseLLMProvider {
     const modelId = mapModelId('aide', modelName);
     const maxTokens = requestConfig?.maxTokens || this.config.maxTokens || 4000;
 
-    const payload = this.buildAidePayload(anthropicMessages, modelId, maxTokens, requestConfig?.temperature);
+    // Convert tools to Anthropic/Claude format for AIDE
+    const tools = requestConfig?.tools?.map(tool => ({
+      name: tool.name,
+      description: tool.description,
+      input_schema: tool.parameters
+    }));
+
+    const payload = this.buildAidePayload(anthropicMessages, modelId, maxTokens, requestConfig?.temperature, tools);
 
     try {
       const response = await fetch(`${this.baseUrl}/generate`, {
@@ -141,7 +148,77 @@ export class AideProvider extends BaseLLMProvider {
 
       const result = await response.json();
       
-      // Extract the response content from AIDE's nested structure
+      // Check if the response includes tool calls
+      const toolCalls = this.extractToolCalls(result);
+      if (toolCalls && toolCalls.length > 0 && requestConfig?.toolExecutor) {
+        // Execute the tool calls
+        const toolResults = [];
+        for (const call of toolCalls) {
+          try {
+            const toolResult = await requestConfig.toolExecutor(call.name, call.input);
+            toolResults.push({
+              tool_use_id: call.id,
+              content: [{
+                type: 'tool_result',
+                tool_use_id: call.id,
+                content: typeof toolResult === 'string' ? toolResult : JSON.stringify(toolResult)
+              }]
+            });
+          } catch (error) {
+            console.error(`Tool execution error for ${call.name}:`, error);
+            toolResults.push({
+              tool_use_id: call.id,
+              content: [{
+                type: 'tool_result',
+                tool_use_id: call.id,
+                content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+              }]
+            });
+          }
+        }
+
+        // Create new messages array with tool results
+        const messagesWithToolResults = [...anthropicMessages];
+        
+        // Add the assistant message with tool calls
+        const assistantWithTools = {
+          role: 'assistant',
+          content: this.buildToolCallContent(toolCalls)
+        };
+        messagesWithToolResults.push(assistantWithTools);
+        
+        // Add user message with tool results
+        const userWithResults = {
+          role: 'user',
+          content: toolResults.flatMap(tr => tr.content as Array<Record<string, unknown>>)
+        };
+        messagesWithToolResults.push(userWithResults);
+
+        // Make another API call with tool results
+        const followUpPayload = this.buildAidePayload(messagesWithToolResults, modelId, maxTokens, requestConfig?.temperature, tools);
+        
+        const followUpResponse = await fetch(`${this.baseUrl}/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'usecaseid': this.useCaseId,
+            'Authorization': `Bearer ${this.authToken}`,
+          },
+          body: JSON.stringify(followUpPayload),
+        });
+
+        if (!followUpResponse.ok) {
+          const errorText = await followUpResponse.text();
+          throw new Error(`AIDE API error on tool follow-up: ${followUpResponse.status} - ${errorText}`);
+        }
+
+        const followUpResult = await followUpResponse.json();
+        const finalContent = this.extractResponseContent(followUpResult);
+        
+        return this.parseResponse(finalContent, mode);
+      }
+
+      // No tool calls, process normally
       const content = this.extractResponseContent(result);
       
       return this.parseResponse(content, mode);
@@ -168,11 +245,24 @@ export class AideProvider extends BaseLLMProvider {
   }
 
   private buildAidePayload(
-    messages: Array<{ role: string; content: Array<{ type: string; text: string }> }>,
+    messages: Array<{ role: string; content: Array<Record<string, unknown>> }>,
     modelId: string,
     maxTokens: number,
-    temperature?: number
+    temperature?: number,
+    tools?: Array<{ name: string; description: string; input_schema: Record<string, unknown> }>
   ) {
+    const body: Record<string, unknown> = {
+      anthropic_version: "bedrock-2023-05-31",
+      max_tokens: maxTokens,
+      temperature: temperature ?? this.config.temperature ?? 0.7,
+      messages: messages,
+    };
+
+    // Add tools if available
+    if (tools && tools.length > 0) {
+      body.tools = tools;
+    }
+
     return {
       aide: {
         scrub_input: true,
@@ -192,12 +282,7 @@ export class AideProvider extends BaseLLMProvider {
         bedrock: {
           invoke: {
             modelId: modelId,
-            body: {
-              anthropic_version: "bedrock-2023-05-31",
-              max_tokens: maxTokens,
-              temperature: temperature ?? this.config.temperature ?? 0.7,
-              messages: messages,
-            },
+            body: body,
           },
         },
       },
@@ -254,6 +339,73 @@ export class AideProvider extends BaseLLMProvider {
       console.error('Error extracting AIDE response content:', error);
       return 'Error parsing response from AIDE API';
     }
+  }
+
+  private extractToolCalls(result: unknown): Array<{ id: string; name: string; input: Record<string, unknown> }> | null {
+    try {
+      if (typeof result === 'object' && result !== null) {
+        const resultObj = result as Record<string, unknown>;
+        
+        // Check for AIDE response format with aws.content containing tool_use
+        if (resultObj.aws && typeof resultObj.aws === 'object' && resultObj.aws !== null) {
+          const aws = resultObj.aws as Record<string, unknown>;
+          if (Array.isArray(aws.content)) {
+            const toolCalls = [];
+            for (const content of aws.content) {
+              if (typeof content === 'object' && content !== null) {
+                const contentObj = content as Record<string, unknown>;
+                if (contentObj.type === 'tool_use' && 
+                    typeof contentObj.id === 'string' && 
+                    typeof contentObj.name === 'string' && 
+                    typeof contentObj.input === 'object') {
+                  toolCalls.push({
+                    id: contentObj.id,
+                    name: contentObj.name,
+                    input: contentObj.input as Record<string, unknown>
+                  });
+                }
+              }
+            }
+            return toolCalls.length > 0 ? toolCalls : null;
+          }
+        }
+        
+        // Fallback: Check for direct content array
+        if (Array.isArray(resultObj.content)) {
+          const toolCalls = [];
+          for (const content of resultObj.content) {
+            if (typeof content === 'object' && content !== null) {
+              const contentObj = content as Record<string, unknown>;
+              if (contentObj.type === 'tool_use' && 
+                  typeof contentObj.id === 'string' && 
+                  typeof contentObj.name === 'string' && 
+                  typeof contentObj.input === 'object') {
+                toolCalls.push({
+                  id: contentObj.id,
+                  name: contentObj.name,
+                  input: contentObj.input as Record<string, unknown>
+                });
+              }
+            }
+          }
+          return toolCalls.length > 0 ? toolCalls : null;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error extracting tool calls:', error);
+      return null;
+    }
+  }
+
+  private buildToolCallContent(toolCalls: Array<{ id: string; name: string; input: Record<string, unknown> }>): Array<Record<string, unknown>> {
+    return toolCalls.map(call => ({
+      type: 'tool_use',
+      id: call.id,
+      name: call.name,
+      input: call.input
+    }));
   }
 }
 
