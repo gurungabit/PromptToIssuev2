@@ -150,6 +150,15 @@ export class AideProvider extends BaseLLMProvider {
       
       // Check if the response includes tool calls
       const toolCalls = this.extractToolCalls(result);
+      
+      // Debug: Log if tools are available vs tool calls found
+      if (requestConfig?.tools && requestConfig.tools.length > 0) {
+        console.log(`Tools available: ${requestConfig.tools.length}, Tool calls found: ${toolCalls?.length || 0}`);
+        if (!toolCalls || toolCalls.length === 0) {
+          console.log('Expected tool call but none found. Response content:', this.extractResponseContent(result).substring(0, 200));
+        }
+      }
+      
       if (toolCalls && toolCalls.length > 0 && requestConfig?.toolExecutor) {
         // Execute the tool calls
         const toolResults = [];
@@ -346,31 +355,60 @@ export class AideProvider extends BaseLLMProvider {
       if (typeof result === 'object' && result !== null) {
         const resultObj = result as Record<string, unknown>;
         
-        // Check for AIDE response format with aws.content containing tool_use
+        // First try to extract the text content to look for XML tool calls
+        let textContent = '';
+        
+        // Get text content from AIDE response format
         if (resultObj.aws && typeof resultObj.aws === 'object' && resultObj.aws !== null) {
           const aws = resultObj.aws as Record<string, unknown>;
-          if (Array.isArray(aws.content)) {
-            const toolCalls = [];
-            for (const content of aws.content) {
-              if (typeof content === 'object' && content !== null) {
-                const contentObj = content as Record<string, unknown>;
-                if (contentObj.type === 'tool_use' && 
-                    typeof contentObj.id === 'string' && 
-                    typeof contentObj.name === 'string' && 
-                    typeof contentObj.input === 'object') {
-                  toolCalls.push({
-                    id: contentObj.id,
-                    name: contentObj.name,
-                    input: contentObj.input as Record<string, unknown>
-                  });
-                }
-              }
+          if (Array.isArray(aws.content) && aws.content[0] && typeof aws.content[0] === 'object') {
+            const content = aws.content[0] as Record<string, unknown>;
+            if (content.type === 'text' && typeof content.text === 'string') {
+              textContent = content.text;
             }
-            return toolCalls.length > 0 ? toolCalls : null;
           }
         }
         
-        // Fallback: Check for direct content array
+        // Check for XML-style function calls in the text content
+        if (textContent.includes('<function_calls>')) {
+          const toolCalls = [];
+          
+          // Extract all function calls using regex
+          const functionCallRegex = /<invoke name="([^"]+)"[^>]*>(.*?)<\/invoke>/g;
+          let match;
+          
+          while ((match = functionCallRegex.exec(textContent)) !== null) {
+            const toolName = match[1];
+            const parametersXml = match[2];
+            
+            // Parse parameters from XML
+            const parameters: Record<string, unknown> = {};
+            const paramRegex = /<parameter name="([^"]+)"[^>]*>([^<]*)<\/parameter>/g;
+            let paramMatch;
+            
+            while ((paramMatch = paramRegex.exec(parametersXml)) !== null) {
+              const paramName = paramMatch[1];
+              const paramValue = paramMatch[2];
+              
+              // Try to parse as number if it looks like a number
+              if (/^\d+$/.test(paramValue)) {
+                parameters[paramName] = parseInt(paramValue);
+              } else {
+                parameters[paramName] = paramValue;
+              }
+            }
+            
+            toolCalls.push({
+              id: `tool_${Date.now()}_${Math.random()}`, // Generate a unique ID
+              name: toolName,
+              input: parameters
+            });
+          }
+          
+          return toolCalls.length > 0 ? toolCalls : null;
+        }
+        
+        // Fallback: Check for standard Anthropic tool_use format (JSON)
         if (Array.isArray(resultObj.content)) {
           const toolCalls = [];
           for (const content of resultObj.content) {
