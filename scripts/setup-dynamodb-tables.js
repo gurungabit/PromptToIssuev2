@@ -27,8 +27,8 @@ async function createTable() {
     const createTableParams = {
       TableName: TABLE_NAME,
       KeySchema: [
-        { AttributeName: 'PK', KeyType: 'HASH' },   // Partition key
-        { AttributeName: 'SK', KeyType: 'RANGE' },  // Sort key
+        { AttributeName: 'PK', KeyType: 'HASH' }, // Partition key
+        { AttributeName: 'SK', KeyType: 'RANGE' }, // Sort key
       ],
       AttributeDefinitions: [
         { AttributeName: 'PK', AttributeType: 'S' },
@@ -64,7 +64,6 @@ async function createTable() {
     console.log('   - Primary Key: PK (Partition) + SK (Sort)');
     console.log('   - Global Secondary Index: GSI1PK + GSI1SK');
     console.log('   - Billing Mode: Provisioned (5 RCU/WCU)');
-    
   } catch (error) {
     console.error('❌ Error creating table:', error);
     throw error;
@@ -82,4 +81,4 @@ async function main() {
   }
 }
 
-main(); 
+main();

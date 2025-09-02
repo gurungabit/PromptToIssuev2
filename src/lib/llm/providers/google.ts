@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI, type ModelParams, SchemaType, type Schema } from '@google/generative-ai';
 import { BaseLLMProvider, type LLMMessage, type LLMRequestConfig } from '../base';
 import type { LLMConfig, ChatMode, AIResponse } from '../../schemas';
+import { getAvailableModels, getDefaultModel } from '../provider-models';
 
 export class GoogleProvider extends BaseLLMProvider {
   private client: GoogleGenerativeAI | null = null;
@@ -31,7 +32,7 @@ export class GoogleProvider extends BaseLLMProvider {
 
     try {
       const model = this.client.getGenerativeModel({
-        model: this.config.model || 'gemini-pro',
+        model: this.config.model || getDefaultModel('google'),
       });
 
       await model.generateContent('Hello');
@@ -47,8 +48,7 @@ export class GoogleProvider extends BaseLLMProvider {
   }
 
   async getAvailableModels(): Promise<string[]> {
-    // Google doesn't provide a models list endpoint, so we return known models
-    return ['gemini-pro', 'gemini-pro-vision', 'gemini-1.5-pro', 'gemini-1.5-flash'];
+    return getAvailableModels('google');
   }
 
   async generateResponse(

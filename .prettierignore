@@ -110,4 +110,41 @@ docs/
 migrations/
 
 # DynamoDB Local data
-dynamodb-local/ 
+dynamodb-local/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+.env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+
+# Python distribution / packaging
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# MCP server files
+mcp/*/uv.lock
+mcp/*/__pycache__/ 

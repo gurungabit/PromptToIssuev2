@@ -4,16 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Toggle } from '@/components/ui/Toggle';
-import { 
-  Plus, 
-  Trash2, 
-  Settings, 
-  CheckCircle, 
-  AlertTriangle,
-  Link,
-  Edit3,
-  X
-} from 'lucide-react';
+import { Plus, Trash2, Settings, CheckCircle, AlertTriangle, Link, Edit3, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { MCPServer } from '@/lib/schemas';
 
@@ -30,16 +21,18 @@ interface MCPSettingsProps {
   onUpdateMCPEnabled?: (enabled: boolean) => void;
 }
 
-const MCPSettings: React.FC<MCPSettingsProps> = ({ 
-  mcpServers = [], 
+const MCPSettings: React.FC<MCPSettingsProps> = ({
+  mcpServers = [],
   mcpEnabled = false,
   onUpdateServers,
-  onUpdateMCPEnabled
+  onUpdateMCPEnabled,
 }) => {
   const [servers, setServers] = useState<MCPServer[]>(mcpServers);
   const [editingServer, setEditingServer] = useState<string | null>(null);
   const [testingServer, setTestingServer] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string; tools?: MCPTool[] } | null>>({});
+  const [testResults, setTestResults] = useState<
+    Record<string, { success: boolean; message: string; tools?: MCPTool[] } | null>
+  >({});
   const [expandedTools, setExpandedTools] = useState<Record<string, boolean>>({});
 
   const defaultGitHubMCP: MCPServer = {
@@ -50,9 +43,9 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
     args: ['run', 'python', 'github_mcp_server.py'],
     cwd: './mcp/github-mcp',
     env: {
-      GITHUB_TOKEN: 'your_github_token_here'
+      GITHUB_TOKEN: 'your_github_token_here',
     },
-    enabled: true
+    enabled: true,
   };
 
   const addServer = () => {
@@ -62,7 +55,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
       description: 'Custom MCP server',
       command: '',
       args: [],
-      enabled: false
+      enabled: false,
     };
     const updatedServers = [...servers, newServer];
     setServers(updatedServers);
@@ -79,9 +72,9 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
     cwd: './mcp/gitlab-mcp',
     env: {
       GITLAB_TOKEN: 'your_gitlab_token_here',
-      GITLAB_API_BASE: 'https://gitlab.com/api/v4'
+      GITLAB_API_BASE: 'https://sfgitlab.opr.statefarm.org/api/v4',
     },
-    enabled: true
+    enabled: true,
   };
 
   const defaultFetchMCP: MCPServer = {
@@ -90,7 +83,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
     description: 'Web scraping and HTTP requests for fetching content from URLs',
     command: 'uvx',
     args: ['mcp-server-fetch'],
-    enabled: true
+    enabled: true,
   };
 
   const addGitHubMCP = () => {
@@ -133,7 +126,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
   };
 
   const updateServer = (id: string, updates: Partial<MCPServer>) => {
-    const updatedServers = servers.map(server => 
+    const updatedServers = servers.map(server =>
       server.id === id ? { ...server, ...updates } : server
     );
     setServers(updatedServers);
@@ -155,66 +148,116 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
     try {
       // Simulate MCP server test - in real implementation, this would test the actual MCP connection
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock success for GitHub MCP if properly configured
-      if (server.id === 'github-mcp' && server.command && server.args.length > 0) {
+
+      // Validate GitHub MCP configuration
+      if (server.id === 'github-mcp') {
+        if (!server.command || server.args.length === 0) {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: { success: false, message: 'Missing command or arguments' },
+          }));
+          return;
+        }
+
+        const githubToken = server.env?.GITHUB_TOKEN;
+        if (!githubToken || githubToken === 'your_github_token_here') {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: {
+              success: false,
+              message: 'GitHub token is required. Please set GITHUB_TOKEN environment variable.',
+            },
+          }));
+          return;
+        }
+
+        // Test the actual GitHub token
+        try {
+          const response = await fetch('https://api.github.com/user', {
+            headers: {
+              Authorization: `token ${githubToken}`,
+              'User-Agent': 'MCP-GitHub-Test',
+            },
+          });
+
+          if (!response.ok) {
+            setTestResults(prev => ({
+              ...prev,
+              [server.id]: {
+                success: false,
+                message: `Invalid GitHub token: ${response.status} ${response.statusText}`,
+              },
+            }));
+            return;
+          }
+        } catch {
+          setTestResults(prev => ({
+            ...prev,
+            [server.id]: {
+              success: false,
+              message: 'Failed to validate GitHub token. Check your internet connection.',
+            },
+          }));
+          return;
+        }
+
         const mockTools = [
           {
             name: 'list_repositories',
             description: 'List repositories for a user or organization',
-            parameters: ['owner', 'per_page']
+            parameters: ['owner', 'per_page'],
           },
           {
             name: 'get_repository_info',
             description: 'Get detailed information about a specific repository',
-            parameters: ['owner', 'repo']
+            parameters: ['owner', 'repo'],
           },
           {
             name: 'list_issues',
             description: 'List issues for a repository',
-            parameters: ['owner', 'repo', 'state', 'per_page']
+            parameters: ['owner', 'repo', 'state', 'per_page'],
           },
           {
             name: 'create_issue',
             description: 'Create a new issue in a repository',
-            parameters: ['owner', 'repo', 'title', 'body', 'labels', 'assignees']
+            parameters: ['owner', 'repo', 'title', 'body', 'labels', 'assignees'],
           },
           {
             name: 'get_issue',
             description: 'Get detailed information about a specific issue',
-            parameters: ['owner', 'repo', 'issue_number']
+            parameters: ['owner', 'repo', 'issue_number'],
           },
           {
             name: 'get_file',
             description: 'Get the content of any file from a repository',
-            parameters: ['owner', 'repo', 'file_path', 'branch']
+            parameters: ['owner', 'repo', 'file_path', 'branch'],
           },
           {
             name: 'list_repository_contents',
             description: 'List the contents of a directory in a repository',
-            parameters: ['owner', 'repo', 'path', 'branch']
+            parameters: ['owner', 'repo', 'path', 'branch'],
           },
           {
             name: 'search_repositories',
             description: 'Search for repositories on GitHub',
-            parameters: ['query', 'sort', 'order', 'per_page']
-          }
+            parameters: ['query', 'sort', 'order', 'per_page'],
+          },
         ];
 
         setTestResults(prev => ({
           ...prev,
-          [server.id]: { 
-            success: true, 
+          [server.id]: {
+            success: true,
             message: `MCP server connected successfully! Found ${mockTools.length} available tools.`,
-            tools: mockTools
-          }
+            tools: mockTools,
+          },
         }));
       } else if (server.id === 'gitlab-mcp') {
         // Validate GitLab MCP configuration
         if (!server.command || server.args.length === 0) {
           setTestResults(prev => ({
             ...prev,
-            [server.id]: { success: false, message: 'Missing command or arguments' }
+            [server.id]: { success: false, message: 'Missing command or arguments' },
           }));
           return;
         }
@@ -225,7 +268,10 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
         if (!gitlabToken || gitlabToken === 'your_gitlab_token_here') {
           setTestResults(prev => ({
             ...prev,
-            [server.id]: { success: false, message: 'GitLab token is required. Please set GITLAB_TOKEN environment variable.' }
+            [server.id]: {
+              success: false,
+              message: 'GitLab token is required. Please set GITLAB_TOKEN environment variable.',
+            },
           }));
           return;
         }
@@ -233,7 +279,11 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
         if (!gitlabApiBase) {
           setTestResults(prev => ({
             ...prev,
-            [server.id]: { success: false, message: 'GitLab API base URL is required. Please set GITLAB_API_BASE environment variable.' }
+            [server.id]: {
+              success: false,
+              message:
+                'GitLab API base URL is required. Please set GITLAB_API_BASE environment variable.',
+            },
           }));
           return;
         }
@@ -244,7 +294,11 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
         } catch {
           setTestResults(prev => ({
             ...prev,
-            [server.id]: { success: false, message: 'Invalid GitLab API base URL format. Please use a valid URL like https://gitlab.com/api/v4' }
+            [server.id]: {
+              success: false,
+              message:
+                'Invalid GitLab API base URL format. Please use a valid URL like https://gitlab.com/api/v4',
+            },
           }));
           return;
         }
@@ -253,90 +307,90 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
           {
             name: 'list_projects',
             description: 'List projects for a user/group or all accessible projects',
-            parameters: ['owner', 'per_page']
+            parameters: ['owner', 'per_page'],
           },
           {
             name: 'get_project_info',
             description: 'Get detailed information about a specific project',
-            parameters: ['project_id']
+            parameters: ['project_id'],
           },
           {
             name: 'list_issues',
             description: 'List issues for a project',
-            parameters: ['project_id', 'state', 'per_page']
+            parameters: ['project_id', 'state', 'per_page'],
           },
           {
             name: 'create_issue',
             description: 'Create a new issue in a project',
-            parameters: ['project_id', 'title', 'description', 'labels', 'assignee_ids']
+            parameters: ['project_id', 'title', 'description', 'labels', 'assignee_ids'],
           },
           {
             name: 'get_issue',
             description: 'Get detailed information about a specific issue',
-            parameters: ['project_id', 'issue_iid']
+            parameters: ['project_id', 'issue_iid'],
           },
           {
             name: 'get_file',
             description: 'Get the content of any file from a project',
-            parameters: ['project_id', 'file_path', 'branch']
+            parameters: ['project_id', 'file_path', 'branch'],
           },
           {
             name: 'list_repository_tree',
             description: 'List the contents of a directory in a project repository',
-            parameters: ['project_id', 'path', 'branch']
+            parameters: ['project_id', 'path', 'branch'],
           },
           {
             name: 'search_projects',
             description: 'Search for projects on GitLab',
-            parameters: ['query', 'order_by', 'sort', 'per_page']
+            parameters: ['query', 'order_by', 'sort', 'per_page'],
           },
           {
             name: 'list_merge_requests',
             description: 'List merge requests for a project',
-            parameters: ['project_id', 'state', 'per_page']
-          }
+            parameters: ['project_id', 'state', 'per_page'],
+          },
         ];
 
         setTestResults(prev => ({
           ...prev,
-          [server.id]: { 
-            success: true, 
+          [server.id]: {
+            success: true,
             message: `GitLab MCP server configured successfully! Found ${mockGitLabTools.length} available tools.`,
-            tools: mockGitLabTools
-          }
+            tools: mockGitLabTools,
+          },
         }));
       } else if (server.id === 'fetch-mcp' && server.command && server.args.length > 0) {
         const mockFetchTools = [
           {
             name: 'fetch',
             description: 'Fetch content from a URL (web scraping, API calls)',
-            parameters: ['url', 'method', 'headers', 'body']
-          }
+            parameters: ['url', 'method', 'headers', 'body'],
+          },
         ];
 
         setTestResults(prev => ({
           ...prev,
-          [server.id]: { 
-            success: true, 
+          [server.id]: {
+            success: true,
             message: `Fetch MCP server connected successfully! Found ${mockFetchTools.length} available tools.`,
-            tools: mockFetchTools
-          }
+            tools: mockFetchTools,
+          },
         }));
       } else if (server.command && server.args.length > 0) {
         setTestResults(prev => ({
           ...prev,
-          [server.id]: { success: true, message: 'Server configuration looks valid!' }
+          [server.id]: { success: true, message: 'Server configuration looks valid!' },
         }));
       } else {
         setTestResults(prev => ({
           ...prev,
-          [server.id]: { success: false, message: 'Missing command or arguments' }
+          [server.id]: { success: false, message: 'Missing command or arguments' },
         }));
       }
     } catch {
       setTestResults(prev => ({
         ...prev,
-        [server.id]: { success: false, message: 'Failed to test connection' }
+        [server.id]: { success: false, message: 'Failed to test connection' },
       }));
     } finally {
       setTestingServer(null);
@@ -382,34 +436,39 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3 p-3 border rounded-lg hover:border-primary/50 transition-all duration-200 cursor-pointer hover:bg-accent/30"
-               onClick={() => onUpdateMCPEnabled?.(!mcpEnabled)}>
-            {/* Toggle Switch */}
-            <div className={cn(
-              "relative w-11 h-6 rounded-full border-2 transition-all duration-300 cursor-pointer hover:scale-105",
-              mcpEnabled 
-                ? "bg-primary border-primary shadow-lg" 
-                : "bg-muted border-muted-foreground hover:border-primary/50"
-            )}>
-              <div className={cn(
-                "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-300 transform",
-                mcpEnabled ? "translate-x-5" : "translate-x-0.5"
-              )} />
+          <div
+            className="flex items-center gap-3 p-3 border rounded-lg hover:border-primary/50 transition-all duration-200 cursor-pointer hover:bg-accent/30"
+            onClick={() => onUpdateMCPEnabled?.(!mcpEnabled)}
+          >
+            {/* Improved Toggle Switch */}
+            <div
+              className={cn(
+                'relative w-11 h-6 rounded-full border-2 transition-all duration-300 cursor-pointer hover:scale-105',
+                mcpEnabled
+                  ? 'bg-green-500 border-green-500 shadow-lg'
+                  : 'bg-gray-600 border-gray-700 hover:border-primary/50'
+              )}
+            >
+              <div
+                className={cn(
+                  'absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md transition-all duration-300 transform',
+                  mcpEnabled ? 'translate-x-5' : 'translate-x-0.5'
+                )}
+              />
             </div>
             <div className="flex flex-col">
-              <span className={cn(
-                "text-sm font-semibold transition-all duration-200",
-                mcpEnabled ? "text-primary" : "text-muted-foreground"
-              )}>
+              <span
+                className={cn(
+                  'text-sm font-semibold transition-all duration-200',
+                  mcpEnabled ? 'text-primary' : 'text-muted-foreground'
+                )}
+              >
                 MCP {mcpEnabled ? 'Enabled' : 'Disabled'}
               </span>
               <span className="text-xs text-muted-foreground">
                 {mcpEnabled ? 'AI can use configured tools' : 'Click to enable tool access'}
               </span>
             </div>
-            {mcpEnabled && (
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse shadow-lg"></div>
-            )}
           </div>
         </div>
       </div>
@@ -485,10 +544,10 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
           <div
             key={server.id}
             className={cn(
-              "border rounded-lg p-6 transition-all duration-200",
-              server.enabled 
-                ? "border-primary/30 bg-primary/5 hover:border-primary/50" 
-                : "border-muted hover:border-muted-foreground/30"
+              'border rounded-lg p-6 transition-all duration-200',
+              server.enabled
+                ? 'border-primary/30 bg-primary/5 hover:border-primary/50'
+                : 'border-muted hover:border-muted-foreground/30'
             )}
           >
             {/* Server Header */}
@@ -496,13 +555,15 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
               <div className="flex items-center gap-3">
                 <Toggle
                   pressed={server.enabled}
-                  onPressedChange={(enabled) => toggleServer(server.id, enabled)}
+                  onPressedChange={enabled => toggleServer(server.id, enabled)}
                   className="cursor-pointer"
                 >
-                  <div className={cn(
-                    "w-4 h-4 rounded-full transition-all duration-200",
-                    server.enabled ? "bg-primary" : "bg-muted-foreground"
-                  )} />
+                  <div
+                    className={cn(
+                      'w-4 h-4 rounded-full transition-all duration-200',
+                      server.enabled ? 'bg-primary' : 'bg-muted-foreground'
+                    )}
+                  />
                 </Toggle>
                 <div>
                   <h4 className="font-medium">{server.name}</h4>
@@ -530,7 +591,11 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                   onClick={() => setEditingServer(editingServer === server.id ? null : server.id)}
                   className="cursor-pointer hover:bg-accent hover:text-accent-foreground hover:scale-110 transition-all duration-200"
                 >
-                  {editingServer === server.id ? <X className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                  {editingServer === server.id ? (
+                    <X className="w-4 h-4" />
+                  ) : (
+                    <Edit3 className="w-4 h-4" />
+                  )}
                 </Button>
                 <Button
                   size="sm"
@@ -551,7 +616,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                     <label className="text-sm font-medium mb-2 block">Server Name</label>
                     <Input
                       value={server.name}
-                      onChange={(e) => updateServer(server.id, { name: e.target.value })}
+                      onChange={e => updateServer(server.id, { name: e.target.value })}
                       placeholder="MCP Server Name"
                       className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                     />
@@ -560,7 +625,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                     <label className="text-sm font-medium mb-2 block">Description</label>
                     <Input
                       value={server.description}
-                      onChange={(e) => updateServer(server.id, { description: e.target.value })}
+                      onChange={e => updateServer(server.id, { description: e.target.value })}
                       placeholder="Server description"
                       className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                     />
@@ -572,7 +637,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                     <label className="text-sm font-medium mb-2 block">Command</label>
                     <Input
                       value={server.command}
-                      onChange={(e) => updateServer(server.id, { command: e.target.value })}
+                      onChange={e => updateServer(server.id, { command: e.target.value })}
                       placeholder="e.g., uv, python, node"
                       className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                     />
@@ -581,7 +646,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                     <label className="text-sm font-medium mb-2 block">Working Directory</label>
                     <Input
                       value={server.cwd || ''}
-                      onChange={(e) => updateServer(server.id, { cwd: e.target.value })}
+                      onChange={e => updateServer(server.id, { cwd: e.target.value })}
                       placeholder="/path/to/server"
                       className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                     />
@@ -592,7 +657,9 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                   <label className="text-sm font-medium mb-2 block">Arguments</label>
                   <Input
                     value={server.args.join(' ')}
-                    onChange={(e) => updateServer(server.id, { args: e.target.value.split(' ').filter(Boolean) })}
+                    onChange={e =>
+                      updateServer(server.id, { args: e.target.value.split(' ').filter(Boolean) })
+                    }
                     placeholder="run python server.py"
                     className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                   />
@@ -606,7 +673,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                       <div key={key} className="flex gap-2">
                         <Input
                           value={key}
-                          onChange={(e) => {
+                          onChange={e => {
                             removeEnvVar(server.id, key);
                             updateEnvVar(server.id, e.target.value, value);
                           }}
@@ -615,7 +682,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                         />
                         <Input
                           value={value}
-                          onChange={(e) => updateEnvVar(server.id, key, e.target.value)}
+                          onChange={e => updateEnvVar(server.id, key, e.target.value)}
                           placeholder="value"
                           className="flex-1 focus:ring-2 focus:ring-primary/30 transition-all duration-200"
                         />
@@ -648,10 +715,10 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
               <div className="mt-4 space-y-3 animate-in fade-in-0 slide-in-from-top-1 duration-300">
                 <div
                   className={cn(
-                    'p-3 rounded-lg border flex items-center gap-2',
+                    'p-3 rounded-lg border-2 flex items-center gap-2 font-semibold',
                     testResults[server.id]?.success
-                      ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200'
-                      : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
+                      ? 'bg-green-200 border-green-500 !text-green-700 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200'
+                      : 'bg-red-200 border-red-500 !text-red-700 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
                   )}
                 >
                   {testResults[server.id]?.success ? (
@@ -660,7 +727,7 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                     <AlertTriangle className="w-4 h-4 animate-pulse" />
                   )}
                   <span className="text-sm flex-1">{testResults[server.id]?.message}</span>
-                  
+
                   {/* Tools Toggle Button */}
                   {testResults[server.id]?.success && testResults[server.id]?.tools && (
                     <Button
@@ -669,53 +736,57 @@ const MCPSettings: React.FC<MCPSettingsProps> = ({
                       onClick={() => toggleToolsExpanded(server.id)}
                       className="text-xs cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/20 hover:scale-105 transition-all duration-200"
                     >
-                      {expandedTools[server.id] ? "▼" : "▶"}
+                      {expandedTools[server.id] ? '▼' : '▶'}
                       {testResults[server.id]?.tools?.length} tools
                     </Button>
                   )}
                 </div>
 
                 {/* Available Tools */}
-                {testResults[server.id]?.success && 
-                 testResults[server.id]?.tools && 
-                 expandedTools[server.id] && (
-                  <div className="bg-muted/30 rounded-lg p-3 border">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Settings className="w-4 h-4 text-muted-foreground" />
-                      <h5 className="text-sm font-medium text-muted-foreground">Available MCP Tools</h5>
-                    </div>
-                    <div className="grid gap-2">
-                      {testResults[server.id]?.tools?.map((tool, index: number) => (
-                        <div 
-                          key={index} 
-                          className="bg-background rounded border p-3 hover:border-primary/30 transition-all duration-200"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="bg-primary/10 rounded p-1">
-                              <Settings className="w-3 h-3 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h6 className="text-sm font-medium text-foreground">{tool.name}</h6>
-                              <p className="text-xs text-muted-foreground mt-1">{tool.description}</p>
-                              {tool.parameters && tool.parameters.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {tool.parameters.map((param: string) => (
-                                    <span 
-                                      key={param} 
-                                      className="inline-block text-xs bg-muted px-2 py-1 rounded font-mono"
-                                    >
-                                      {param}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
+                {testResults[server.id]?.success &&
+                  testResults[server.id]?.tools &&
+                  expandedTools[server.id] && (
+                    <div className="bg-muted/30 rounded-lg p-3 border">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Settings className="w-4 h-4 text-muted-foreground" />
+                        <h5 className="text-sm font-medium text-muted-foreground">
+                          Available MCP Tools
+                        </h5>
+                      </div>
+                      <div className="grid gap-2">
+                        {testResults[server.id]?.tools?.map((tool, index: number) => (
+                          <div
+                            key={index}
+                            className="bg-background rounded border p-3 hover:border-primary/30 transition-all duration-200"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="bg-primary/10 rounded p-1">
+                                <Settings className="w-3 h-3 text-primary" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h6 className="text-sm font-medium text-foreground">{tool.name}</h6>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {tool.description}
+                                </p>
+                                {tool.parameters && tool.parameters.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {tool.parameters.map((param: string) => (
+                                      <span
+                                        key={param}
+                                        className="inline-block text-xs bg-muted px-2 py-1 rounded font-mono"
+                                      >
+                                        {param}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
               </div>
             )}
           </div>

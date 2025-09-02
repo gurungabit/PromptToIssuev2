@@ -139,6 +139,12 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
       maxTokens: 4000,
       temperature: 0.7,
     },
+    aide: {
+      provider: 'aide',
+      model: 'claude-4-sonnet',
+      maxTokens: 4000,
+      temperature: 0.7,
+    },
   });
 
   const [gitlabConfig, setGitlabConfig] = useState<GitLabConfig | null>(null);
@@ -179,7 +185,18 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
         if (configs.ollama?.model === 'mistral' || configs.ollama?.model === 'llama2') {
           configs.ollama.model = 'mistral:latest';
         }
-        setProviderConfigs(configs);
+
+        // Merge saved configs with default configs to preserve all fields
+        setProviderConfigs(prev => {
+          const mergedConfigs = { ...prev };
+          Object.keys(configs).forEach(provider => {
+            mergedConfigs[provider as LLMProvider] = {
+              ...prev[provider as LLMProvider],
+              ...configs[provider],
+            };
+          });
+          return mergedConfigs;
+        });
       } catch (error) {
         console.error('Failed to parse saved provider configs:', error);
         // Clear corrupted localStorage

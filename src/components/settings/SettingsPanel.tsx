@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useChat } from '@/contexts/ChatContext';
@@ -18,15 +18,31 @@ import {
   AlertTriangle,
   AlertCircle,
   Link,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  getAvailableModels,
+  shouldShowModelSelector,
+  getModelDisplayName,
+  getEnabledProviders,
+  getProviderDisplayName,
+} from '@/lib/llm/provider-models';
 
 interface SettingsPanelProps {
   onClose: () => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
-  const { currentProvider, setProvider, providerConfigs, updateProviderConfig, mcpConfig, updateMCPServers, updateMCPConfig } = useChat();
+  const {
+    currentProvider,
+    setProvider,
+    providerConfigs,
+    updateProviderConfig,
+    mcpConfig,
+    updateMCPServers,
+    updateMCPConfig,
+  } = useChat();
 
   const [activeTab, setActiveTab] = useState<'providers' | 'platforms' | 'mcp'>('providers');
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
@@ -34,13 +50,32 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   const [testResults, setTestResults] = useState<
     Record<string, { success: boolean; message: string } | null>
   >({});
+  const [showModelDropdown, setShowModelDropdown] = useState<Record<string, boolean>>({});
+  const modelDropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const providers: { id: LLMProvider; name: string; icon: React.ReactNode }[] = [
-    { id: 'openai', name: 'OpenAI', icon: <Bot className="w-5 h-5" /> },
-    { id: 'anthropic', name: 'Anthropic (Claude)', icon: <Bot className="w-5 h-5" /> },
-    { id: 'google', name: 'Google (Gemini)', icon: <Bot className="w-5 h-5" /> },
-    { id: 'ollama', name: 'Ollama (Local)', icon: <Bot className="w-5 h-5" /> },
-  ];
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      Object.keys(showModelDropdown).forEach(providerId => {
+        if (showModelDropdown[providerId]) {
+          const ref = modelDropdownRefs.current[providerId];
+          if (ref && !ref.contains(event.target as Node)) {
+            setShowModelDropdown(prev => ({ ...prev, [providerId]: false }));
+          }
+        }
+      });
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showModelDropdown]);
+
+  // Get enabled providers from the configuration
+  const providers = getEnabledProviders().map(providerId => ({
+    id: providerId,
+    name: getProviderDisplayName(providerId),
+    icon: <Bot className="w-5 h-5" />,
+  }));
 
   const handleProviderConfigUpdate = (
     provider: LLMProvider,
@@ -96,10 +131,16 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-md z-[99999] flex items-center justify-center p-4">
-      <div className="bg-background border rounded-lg shadow-lg w-full max-w-4xl h-[80vh] flex flex-col">
+    <div
+      className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-[99999] p-4"
+      style={{ backgroundColor: 'hsl(var(--chat-message-assistant) / 0.8)' }}
+    >
+      <div
+        className="border rounded-lg shadow-xl w-full max-w-4xl h-[80vh] flex flex-col fade-in"
+        style={{ background: 'hsl(var(--chat-message-assistant))' }}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b bg-background">
+        <div className="flex items-center justify-between p-6 border-b border-border">
           <div className="flex items-center gap-3">
             <Settings className="w-6 h-6" />
             <div>
@@ -120,7 +161,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b bg-background">
+        <div className="flex border-b border-border">
           <button
             className={cn(
               'px-6 py-3 text-sm font-medium border-b-2 transition-all duration-300 cursor-pointer hover:bg-accent/50',
@@ -158,7 +199,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto scroll-area p-6 bg-background">
+        <div className="flex-1 overflow-y-auto scroll-area p-6">
           {activeTab === 'providers' && (
             <div className="space-y-6">
               {/* Current Provider */}
@@ -217,7 +258,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                       </Button>
                     </div>
 
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-2 overflow-visible">
                       {/* API Key */}
                       {provider.id !== 'ollama' && (
                         <div>
@@ -281,18 +322,79 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                         </div>
                       )}
 
-                      {/* Model */}
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">Model</label>
-                        <Input
-                          value={providerConfigs[provider.id]?.model || ''}
-                          onChange={e =>
-                            handleProviderConfigUpdate(provider.id, 'model', e.target.value)
-                          }
-                          placeholder="e.g., gpt-3.5-turbo"
-                          className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
-                        />
-                      </div>
+                      {/* Model - Show dropdown if model selector is enabled for this provider */}
+                      {shouldShowModelSelector(provider.id) ? (
+                        <div className="relative overflow-visible">
+                          <label className="text-sm font-medium mb-2 block">Model</label>
+                          <div
+                            className="relative overflow-visible"
+                            ref={el => {
+                              modelDropdownRefs.current[provider.id] = el;
+                            }}
+                          >
+                            <button
+                              type="button"
+                              data-dropdown={provider.id}
+                              onClick={() =>
+                                setShowModelDropdown(prev => ({
+                                  ...prev,
+                                  [provider.id]: !prev[provider.id],
+                                }))
+                              }
+                              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 text-left flex items-center justify-between"
+                            >
+                              <span>
+                                {getModelDisplayName(providerConfigs[provider.id]?.model || '') ||
+                                  'Select a model...'}
+                              </span>
+                              <ChevronDown
+                                className={cn(
+                                  'w-4 h-4 transition-transform duration-200',
+                                  showModelDropdown[provider.id] && 'rotate-180'
+                                )}
+                              />
+                            </button>
+                            {showModelDropdown[provider.id] && (
+                              <div className="absolute z-[9999] w-full mt-1 bg-gray-200 border border-gray-300 rounded-md shadow-2xl max-h-60 overflow-y-auto left-0 right-0">
+                                {getAvailableModels(provider.id).map(model => (
+                                  <button
+                                    key={model}
+                                    type="button"
+                                    onClick={() => {
+                                      handleProviderConfigUpdate(provider.id, 'model', model);
+                                      setShowModelDropdown(prev => ({
+                                        ...prev,
+                                        [provider.id]: false,
+                                      }));
+                                    }}
+                                    className={cn(
+                                      'w-full px-3 py-2 text-sm text-left transition-colors duration-200 cursor-pointer block text-gray-800',
+                                      'hover:bg-gray-100 hover:text-gray-900',
+                                      providerConfigs[provider.id]?.model === model
+                                        ? 'bg-gray-200 text-gray-900'
+                                        : ''
+                                    )}
+                                  >
+                                    {getModelDisplayName(model)}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Model</label>
+                          <Input
+                            value={providerConfigs[provider.id]?.model || ''}
+                            onChange={e =>
+                              handleProviderConfigUpdate(provider.id, 'model', e.target.value)
+                            }
+                            placeholder="e.g., gpt-3.5-turbo"
+                            className="focus:ring-2 focus:ring-primary/30 transition-all duration-200"
+                          />
+                        </div>
+                      )}
 
                       {/* Temperature */}
                       <div>
@@ -338,10 +440,10 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
                     {testResults[provider.id] && (
                       <div
                         className={cn(
-                          'mt-4 p-3 rounded-lg border flex items-center gap-2 animate-in fade-in-0 slide-in-from-top-1 duration-300',
+                          'mt-4 p-3 rounded-lg border-2 flex items-center gap-2 animate-in fade-in-0 slide-in-from-top-1 duration-300 font-semibold',
                           testResults[provider.id]?.success
-                            ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200'
-                            : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
+                            ? 'bg-green-200 border-green-500 !text-green-700 dark:bg-green-950/20 dark:border-green-800 dark:text-green-200'
+                            : 'bg-red-200 border-red-500 !text-red-700 dark:bg-red-950/20 dark:border-red-800 dark:text-red-200'
                         )}
                       >
                         {testResults[provider.id]?.success ? (
@@ -385,18 +487,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
           {activeTab === 'mcp' && (
             <div className="space-y-6">
-              <MCPSettings 
+              <MCPSettings
                 mcpServers={mcpConfig.servers}
                 mcpEnabled={mcpConfig.enabled}
                 onUpdateServers={updateMCPServers}
-                onUpdateMCPEnabled={(enabled) => updateMCPConfig({ enabled })}
+                onUpdateMCPEnabled={enabled => updateMCPConfig({ enabled })}
               />
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t bg-background">
+        <div className="flex justify-end gap-3 p-6 border-t border-border">
           <Button
             variant="outline"
             onClick={onClose}

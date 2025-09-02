@@ -44,4 +44,4 @@ To test if the proxy is working:
 - Only runs on server-side (Node.js runtime)
 - Initializes once during server startup
 - Affects all HTTP requests made by the backend
-- Compatible with corporate proxy environments 
+- Compatible with corporate proxy environments

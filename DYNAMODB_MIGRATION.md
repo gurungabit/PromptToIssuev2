@@ -33,20 +33,21 @@ Global Secondary Index: GSI1PK + GSI1SK (for shared conversations)
 
 ### Data Layout
 
-| Entity | PK | SK | Purpose |
-|--------|----|----|---------|
-| User | `USER#userId` | `PROFILE` | User profile data |
-| User Settings | `USER#userId` | `SETTINGS` | User preferences |
-| Conversation | `USER#userId` | `CONV#timestamp#convId` | User's conversations |
-| Message | `CONV#convId` | `MSG#timestamp#msgId` | Messages in conversation |
-| Ticket | `CONV#convId` | `TICKET#ticketId` | Tickets in conversation |
-| Provider Config | `USER#userId` | `PROVIDER#providerName` | AI provider settings |
+| Entity          | PK            | SK                      | Purpose                  |
+| --------------- | ------------- | ----------------------- | ------------------------ |
+| User            | `USER#userId` | `PROFILE`               | User profile data        |
+| User Settings   | `USER#userId` | `SETTINGS`              | User preferences         |
+| Conversation    | `USER#userId` | `CONV#timestamp#convId` | User's conversations     |
+| Message         | `CONV#convId` | `MSG#timestamp#msgId`   | Messages in conversation |
+| Ticket          | `CONV#convId` | `TICKET#ticketId`       | Tickets in conversation  |
+| Provider Config | `USER#userId` | `PROVIDER#providerName` | AI provider settings     |
 
 ## 🚀 Development Setup
 
 ### Quick Start
 
 **One-time setup:**
+
 ```bash
 npm install
 ```
@@ -54,12 +55,14 @@ npm install
 **Daily development:**
 
 Terminal 1 - Start DynamoDB:
+
 ```bash
 npm run dynamodb:start
 npm run db:setup          # First time only: create tables and seed data
 ```
 
 Terminal 2 - Start Next.js:
+
 ```bash
 npm run dev
 ```
@@ -67,21 +70,27 @@ npm run dev
 ### Detailed Steps
 
 1. **Start DynamoDB Local**
+
    ```bash
    npm run dynamodb:start
    ```
+
    This starts DynamoDB Local on `http://localhost:8000`
 
 2. **Setup Tables**
+
    ```bash
    npm run dynamodb:setup
    ```
+
    Creates the main table with proper indexes.
 
 3. **Seed Database**
+
    ```bash
    npm run db:seed
    ```
+
    Creates demo user, conversation, and messages.
 
 4. **Start Development Server**
@@ -91,13 +100,13 @@ npm run dev
 
 ## 📝 Available Scripts
 
-| Script | Description |
-|--------|-------------|
+| Script                   | Description                        |
+| ------------------------ | ---------------------------------- |
 | `npm run dynamodb:start` | Start DynamoDB Local in background |
-| `npm run dynamodb:setup` | Create tables with proper schema |
-| `npm run db:seed` | Seed database with demo data |
-| `npm run db:setup` | Create tables and seed (combined) |
-| `npm run dev` | Start Next.js development server |
+| `npm run dynamodb:setup` | Create tables with proper schema   |
+| `npm run db:seed`        | Seed database with demo data       |
+| `npm run db:setup`       | Create tables and seed (combined)  |
+| `npm run dev`            | Start Next.js development server   |
 
 ## 🔧 Environment Configuration
 
@@ -139,7 +148,7 @@ DYNAMODB_TABLE_NAME=prompt-to-issue-prod
 For production deployment:
 
 1. **Create DynamoDB Table**: Named `prompt-to-issue-prod` (or your chosen name)
-2. **Set Primary Key**: 
+2. **Set Primary Key**:
    - Partition key: `PK` (String)
    - Sort key: `SK` (String)
 3. **Create Global Secondary Index**:
@@ -181,6 +190,7 @@ const messages = await messageRepo.getConversationMessages('conversationId');
 ## 🔍 DynamoDB Local Tools
 
 ### Web Shell
+
 Access the DynamoDB Local web interface at: `http://localhost:8000/shell/`
 
 ### Query Examples
@@ -190,11 +200,11 @@ Access the DynamoDB Local web interface at: `http://localhost:8000/shell/`
 AWS.config.update({
   region: 'us-east-1',
   accessKeyId: 'fakeMyKeyId',
-  secretAccessKey: 'fakeSecretAccessKey'
+  secretAccessKey: 'fakeSecretAccessKey',
 });
 
 var docClient = new AWS.DynamoDB.DocumentClient({
-  endpoint: 'http://localhost:8000'
+  endpoint: 'http://localhost:8000',
 });
 
 // Get all conversations for a user
@@ -203,11 +213,11 @@ var params = {
   KeyConditionExpression: 'PK = :pk AND begins_with(SK, :sk)',
   ExpressionAttributeValues: {
     ':pk': 'USER#userId',
-    ':sk': 'CONV#'
-  }
+    ':sk': 'CONV#',
+  },
 };
 
-docClient.query(params, function(err, data) {
+docClient.query(params, function (err, data) {
   console.log(data.Items);
 });
 ```
@@ -239,4 +249,4 @@ No code changes required - just update environment variables!
 4. **Deploy to production** with real AWS DynamoDB when ready
 5. **Monitor performance** and adjust read/write capacity as needed
 
-The migration is complete and your application now runs on a modern, scalable NoSQL database while maintaining all existing functionality! 🚀 
+The migration is complete and your application now runs on a modern, scalable NoSQL database while maintaining all existing functionality! 🚀

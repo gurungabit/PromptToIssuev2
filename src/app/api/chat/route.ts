@@ -179,7 +179,10 @@ export async function POST(request: NextRequest) {
               parameters: {
                 type: 'object',
                 properties: {
-                  owner: { type: 'string', description: 'GitLab username or group name (optional)' },
+                  owner: {
+                    type: 'string',
+                    description: 'GitLab username or group name (optional)',
+                  },
                   per_page: {
                     type: 'number',
                     description: 'Number of projects per page',
@@ -195,9 +198,9 @@ export async function POST(request: NextRequest) {
               parameters: {
                 type: 'object',
                 properties: {
-                  project_id: { 
-                    type: 'string', 
-                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  project_id: {
+                    type: 'string',
+                    description: 'Project ID or path (e.g., "123" or "group/project")',
                   },
                 },
                 required: ['project_id'],
@@ -209,9 +212,9 @@ export async function POST(request: NextRequest) {
               parameters: {
                 type: 'object',
                 properties: {
-                  project_id: { 
-                    type: 'string', 
-                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  project_id: {
+                    type: 'string',
+                    description: 'Project ID or path (e.g., "123" or "group/project")',
                   },
                   state: { type: 'string', enum: ['opened', 'closed', 'all'], default: 'opened' },
                   per_page: {
@@ -229,9 +232,9 @@ export async function POST(request: NextRequest) {
               parameters: {
                 type: 'object',
                 properties: {
-                  project_id: { 
-                    type: 'string', 
-                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  project_id: {
+                    type: 'string',
+                    description: 'Project ID or path (e.g., "123" or "group/project")',
                   },
                   title: { type: 'string', description: 'Issue title' },
                   description: { type: 'string', description: 'Issue description' },
@@ -251,11 +254,14 @@ export async function POST(request: NextRequest) {
               parameters: {
                 type: 'object',
                 properties: {
-                  project_id: { 
-                    type: 'string', 
-                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  project_id: {
+                    type: 'string',
+                    description: 'Project ID or path (e.g., "123" or "group/project")',
                   },
-                  issue_iid: { type: 'number', description: 'Issue internal ID (the number shown in UI)' },
+                  issue_iid: {
+                    type: 'number',
+                    description: 'Issue internal ID (the number shown in UI)',
+                  },
                 },
                 required: ['project_id', 'issue_iid'],
               },
@@ -267,9 +273,9 @@ export async function POST(request: NextRequest) {
               parameters: {
                 type: 'object',
                 properties: {
-                  project_id: { 
-                    type: 'string', 
-                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  project_id: {
+                    type: 'string',
+                    description: 'Project ID or path (e.g., "123" or "group/project")',
                   },
                   file_path: {
                     type: 'string',
@@ -287,9 +293,9 @@ export async function POST(request: NextRequest) {
               parameters: {
                 type: 'object',
                 properties: {
-                  project_id: { 
-                    type: 'string', 
-                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  project_id: {
+                    type: 'string',
+                    description: 'Project ID or path (e.g., "123" or "group/project")',
                   },
                   path: {
                     type: 'string',
@@ -308,10 +314,10 @@ export async function POST(request: NextRequest) {
                 type: 'object',
                 properties: {
                   query: { type: 'string', description: 'Search query' },
-                  order_by: { 
-                    type: 'string', 
-                    enum: ['id', 'name', 'path', 'created_at', 'updated_at', 'last_activity_at'], 
-                    default: 'last_activity_at' 
+                  order_by: {
+                    type: 'string',
+                    enum: ['id', 'name', 'path', 'created_at', 'updated_at', 'last_activity_at'],
+                    default: 'last_activity_at',
                   },
                   sort: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
                   per_page: {
@@ -329,11 +335,15 @@ export async function POST(request: NextRequest) {
               parameters: {
                 type: 'object',
                 properties: {
-                  project_id: { 
-                    type: 'string', 
-                    description: 'Project ID or path (e.g., "123" or "group/project")' 
+                  project_id: {
+                    type: 'string',
+                    description: 'Project ID or path (e.g., "123" or "group/project")',
                   },
-                  state: { type: 'string', enum: ['opened', 'closed', 'merged', 'all'], default: 'opened' },
+                  state: {
+                    type: 'string',
+                    enum: ['opened', 'closed', 'merged', 'all'],
+                    default: 'opened',
+                  },
                   per_page: {
                     type: 'number',
                     description: 'Number of merge requests per page',
@@ -411,7 +421,6 @@ export async function POST(request: NextRequest) {
       try {
         // Call the actual MCP server using stdio
         const { spawn } = await import('child_process');
-
         return new Promise((resolve, reject) => {
           // For UV, we need to run it properly
           const mcpProcess = spawn(server.command, server.args, {

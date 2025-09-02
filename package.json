@@ -10,10 +10,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:start": "npm run db:up && npm run db:setup",
-    "db:up": "docker-compose -f docker-compose.dynamodb.yml up -d",
-    "db:down": "docker-compose -f docker-compose.dynamodb.yml down",
+    "db:up": "docker compose -f docker-compose.dynamodb.yml up -d",
+    "db:down": "docker compose -f docker-compose.dynamodb.yml down",
     "db:setup": "node scripts/setup-dynamodb-tables.js",
-    "upackage": "npx npm-check-updates -u && npm install"
+    "upackage": "npx npm-check-updates -u && npm install",
+    "mcp:sync": "cd mcp/github-mcp && uv sync && cd ../gitlab-mcp && uv sync"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.57.0",
@@ -39,7 +40,7 @@
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4.1.11",
     "undici": "^7.13.0",
-    "zod": "^4.0.14"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
