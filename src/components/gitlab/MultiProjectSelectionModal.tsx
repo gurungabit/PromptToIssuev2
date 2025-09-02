@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Dropdown } from '@/components/ui/Dropdown';
+import { SearchableDropdown } from '@/components/ui/SearchableDropdown';
 import { Modal } from '@/components/ui/Modal';
 import { GitLabClient } from '@/lib/gitlab/client';
 import type {
@@ -53,6 +54,7 @@ const MultiProjectSelectionModal: React.FC<MultiProjectSelectionModalProps> = ({
 
   // Search states
   const [projectSearch, setProjectSearch] = useState('');
+  const [milestoneSearch, setMilestoneSearch] = useState('');
 
   // Loading states
   const [isLoadingProjects, setIsLoadingProjects] = useState(false);
@@ -192,6 +194,17 @@ const MultiProjectSelectionModal: React.FC<MultiProjectSelectionModalProps> = ({
     );
   }, [projects, projectSearch]);
 
+  const filteredMilestones = useCallback(
+    (projectId: number) => {
+      const projectMilestones = allMilestones[projectId] || [];
+      if (!milestoneSearch.trim()) return projectMilestones;
+      return projectMilestones.filter(milestone =>
+        milestone.title.toLowerCase().includes(milestoneSearch.toLowerCase())
+      );
+    },
+    [allMilestones, milestoneSearch]
+  );
+
   const getProjectById = (projectId: number) => projects.find(p => p.id === projectId);
   const getMilestoneById = (projectId: number, milestoneId?: number) =>
     milestoneId ? allMilestones[projectId]?.find(m => m.id === milestoneId) : undefined;
@@ -271,6 +284,15 @@ const MultiProjectSelectionModal: React.FC<MultiProjectSelectionModalProps> = ({
                 <div>
                   <label className="text-sm font-medium mb-2 block">Default Milestone</label>
                   <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search milestones..."
+                        value={milestoneSearch}
+                        onChange={e => setMilestoneSearch(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
                     <div
                       onClick={() => setDefaultMilestone(null)}
                       className={cn(
@@ -285,7 +307,7 @@ const MultiProjectSelectionModal: React.FC<MultiProjectSelectionModalProps> = ({
                         <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                       </div>
                     ) : (
-                      allMilestones[defaultProject.id]?.slice(0, 3).map(milestone => (
+                      filteredMilestones(defaultProject.id).slice(0, 10).map(milestone => (
                         <div
                           key={milestone.id}
                           onClick={() => setDefaultMilestone(milestone)}
@@ -354,7 +376,7 @@ const MultiProjectSelectionModal: React.FC<MultiProjectSelectionModalProps> = ({
                 const selectedMilestone = selection
                   ? getMilestoneById(selection.projectId, selection.milestoneId)
                   : null;
-                const projectMilestones = selection ? allMilestones[selection.projectId] || [] : [];
+                const projectMilestones = selection ? filteredMilestones(selection.projectId) : [];
 
                 return (
                   <div key={ticket.id} className="border rounded-lg p-4 space-y-3">
@@ -371,11 +393,11 @@ const MultiProjectSelectionModal: React.FC<MultiProjectSelectionModalProps> = ({
                       {/* Project Selection */}
                       <div>
                         <label className="text-xs font-medium mb-1 block">Project</label>
-                        <Dropdown
+                        <SearchableDropdown
                           value={selection?.projectId?.toString() || ''}
                           options={[
                             { value: '', label: 'Select project...' },
-                            ...filteredProjects().map(project => ({
+                            ...projects.map(project => ({
                               value: project.id.toString(),
                               label: `${project.name} (${project.path_with_namespace})`,
                             })),
@@ -384,6 +406,7 @@ const MultiProjectSelectionModal: React.FC<MultiProjectSelectionModalProps> = ({
                             value && handleProjectChange(ticket.id, parseInt(value))
                           }
                           placeholder="Select project..."
+                          searchPlaceholder="Search projects..."
                           size="sm"
                         />
                       </div>
@@ -391,11 +414,11 @@ const MultiProjectSelectionModal: React.FC<MultiProjectSelectionModalProps> = ({
                       {/* Milestone Selection */}
                       <div>
                         <label className="text-xs font-medium mb-1 block">Milestone</label>
-                        <Dropdown
+                        <SearchableDropdown
                           value={selection?.milestoneId?.toString() || ''}
                           options={[
                             { value: '', label: 'No milestone' },
-                            ...projectMilestones.map(milestone => ({
+                            ...(selection ? allMilestones[selection.projectId] || [] : []).map(milestone => ({
                               value: milestone.id.toString(),
                               label: `${milestone.title}${
                                 milestone.due_date
@@ -412,6 +435,7 @@ const MultiProjectSelectionModal: React.FC<MultiProjectSelectionModalProps> = ({
                             (selection && loadingMilestones.has(selection.projectId))
                           }
                           placeholder="No milestone"
+                          searchPlaceholder="Search milestones..."
                           size="sm"
                         />
                         {selection && loadingMilestones.has(selection.projectId) && (
