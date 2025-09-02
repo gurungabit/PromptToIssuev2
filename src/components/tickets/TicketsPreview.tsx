@@ -1,13 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { Button } from '@/components/ui/Button';
 import { TicketCard } from './TicketCard';
 import { ProjectSelectionModal } from '@/components/gitlab/ProjectSelectionModal';
-import { Check, X, AlertCircle } from 'lucide-react';
+import { MultiProjectSelectionModal } from '@/components/gitlab/MultiProjectSelectionModal';
+import { Check, X, AlertCircle, GitBranch, Settings } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { ProjectSelection } from '@/lib/schemas';
+import type { ProjectSelection, MultiProjectSelection } from '@/lib/schemas';
 
 const TicketsPreview: React.FC = () => {
   const {
@@ -20,7 +21,10 @@ const TicketsPreview: React.FC = () => {
     showProjectSelection,
     setShowProjectSelection,
     createGitLabIssues,
+    createGitLabIssuesMulti,
   } = useChat();
+
+  const [showMultiProjectSelection, setShowMultiProjectSelection] = useState(false);
 
   if (pendingTickets.length === 0) {
     return null;
@@ -28,6 +32,11 @@ const TicketsPreview: React.FC = () => {
 
   const handleProjectSelection = (projectSelection: ProjectSelection) => {
     createGitLabIssues(pendingTickets, projectSelection);
+  };
+
+  const handleMultiProjectSelection = (multiSelection: MultiProjectSelection) => {
+    setShowMultiProjectSelection(false);
+    createGitLabIssuesMulti(multiSelection);
   };
 
   return (
@@ -84,15 +93,38 @@ const TicketsPreview: React.FC = () => {
               Reject & Clarify
             </Button>
 
-            <Button
-              variant="outline"
-              onClick={() => approveTickets()}
-              disabled={isLoading}
-              className="flex items-center gap-2 cursor-pointer hover:border-green-300 hover:text-green-600 hover:bg-primary/90 hover:shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
-            >
-              <Check className="w-4 h-4" />
-              {isLoading ? 'Creating...' : 'Approve & Create'}
-            </Button>
+            {pendingTickets.length === 1 ? (
+              <Button
+                variant="outline"
+                onClick={() => approveTickets()}
+                disabled={isLoading}
+                className="flex items-center gap-2 cursor-pointer hover:border-green-300 hover:text-green-600 hover:bg-primary/90 hover:shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
+              >
+                <Check className="w-4 h-4" />
+                {isLoading ? 'Creating...' : 'Approve & Create'}
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => approveTickets()}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 cursor-pointer hover:border-green-300 hover:text-green-600 hover:bg-primary/90 hover:shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
+                >
+                  <GitBranch className="w-4 h-4" />
+                  {isLoading ? 'Creating...' : 'Same Project'}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowMultiProjectSelection(true)}
+                  disabled={isLoading}
+                  className="flex items-center gap-2 cursor-pointer hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/20 hover:shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
+                >
+                  <Settings className="w-4 h-4" />
+                  Different Projects
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -115,6 +147,17 @@ const TicketsPreview: React.FC = () => {
             isOpen={showProjectSelection}
             onClose={() => setShowProjectSelection(false)}
             onConfirm={handleProjectSelection}
+            tickets={pendingTickets}
+            gitlabConfig={gitlabConfig}
+          />
+        )}
+
+        {/* Multi-Project Selection Modal */}
+        {gitlabConfig && (
+          <MultiProjectSelectionModal
+            isOpen={showMultiProjectSelection}
+            onClose={() => setShowMultiProjectSelection(false)}
+            onConfirm={handleMultiProjectSelection}
             tickets={pendingTickets}
             gitlabConfig={gitlabConfig}
           />

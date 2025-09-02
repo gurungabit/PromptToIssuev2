@@ -18,6 +18,7 @@ interface DropdownProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
   icon?: React.ReactNode;
+  disabled?: boolean;
 }
 
 const Dropdown: React.FC<DropdownProps> = ({
@@ -28,6 +29,7 @@ const Dropdown: React.FC<DropdownProps> = ({
   className,
   size = 'sm',
   icon,
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -67,9 +69,12 @@ const Dropdown: React.FC<DropdownProps> = ({
       {/* Dropdown Button */}
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
         className={cn(
-          'rounded-full font-medium border border-border bg-background text-foreground cursor-pointer hover:bg-accent hover:border-primary/40 transition-all duration-200 flex items-center gap-1',
+          'rounded-full font-medium border border-border bg-background text-foreground transition-all duration-200 flex items-center gap-1',
+          !disabled && 'cursor-pointer hover:bg-accent hover:border-primary/40',
+          disabled && 'opacity-50 cursor-not-allowed',
           sizeClasses[size],
           className
         )}
@@ -83,7 +88,7 @@ const Dropdown: React.FC<DropdownProps> = ({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-32 glass rounded-[12px] shadow-xl z-50 border border-border/50">
+        <div className="absolute top-full left-0 mt-1 w-full min-w-[300px] glass rounded-[12px] shadow-xl z-50 border border-border/50">
           <div className="p-1">
             {options.map(option => (
               <button
@@ -91,7 +96,7 @@ const Dropdown: React.FC<DropdownProps> = ({
                 type="button"
                 onClick={() => handleSelect(option.value)}
                 className={cn(
-                  'w-full text-left px-2 py-1.5 text-xs rounded-[8px] transition-all duration-200 cursor-pointer flex items-center gap-1',
+                  'w-full text-left px-3 py-2 text-sm rounded-[8px] transition-all duration-200 cursor-pointer flex items-center gap-1',
                   'hover:bg-accent hover:scale-[1.02] hover:shadow-sm',
                   value === option.value && 'bg-accent text-accent-foreground font-medium'
                 )}

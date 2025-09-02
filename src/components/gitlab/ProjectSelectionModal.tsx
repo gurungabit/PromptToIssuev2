@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Modal } from '@/components/ui/Modal';
 import { GitLabClient } from '@/lib/gitlab/client';
 import type {
   GitLabProject,
@@ -13,7 +14,6 @@ import type {
 } from '@/lib/schemas';
 import {
   Search,
-  X,
   ExternalLink,
   Calendar,
   GitBranch,
@@ -196,43 +196,67 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
   }, [projects, projectSearch]);
 
   const filteredMilestones = useCallback(() => {
-    if (!milestoneSearch.trim()) return milestones;
-    return milestones.filter(milestone =>
-      milestone.title.toLowerCase().includes(milestoneSearch.toLowerCase())
-    );
+    let filtered = milestones;
+
+    // Apply search filter if provided
+    if (milestoneSearch.trim()) {
+      filtered = filtered.filter(milestone =>
+        milestone.title.toLowerCase().includes(milestoneSearch.toLowerCase())
+      );
+    }
+
+    // Sort milestones: upcoming (active with future due dates) first, then active, then closed
+    return filtered.sort((a, b) => {
+      const now = new Date();
+      const aDueDate = a.due_date ? new Date(a.due_date) : null;
+      const bDueDate = b.due_date ? new Date(b.due_date) : null;
+
+      // Helper to determine if milestone is upcoming (active with future due date)
+      const isUpcoming = (milestone: GitLabMilestone) => {
+        return (
+          milestone.state === 'active' && milestone.due_date && new Date(milestone.due_date) > now
+        );
+      };
+
+      const aIsUpcoming = isUpcoming(a);
+      const bIsUpcoming = isUpcoming(b);
+
+      // Upcoming milestones first
+      if (aIsUpcoming && !bIsUpcoming) return -1;
+      if (!aIsUpcoming && bIsUpcoming) return 1;
+
+      // If both upcoming or both not upcoming, sort by state (active before closed)
+      if (a.state !== b.state) {
+        if (a.state === 'active') return -1;
+        if (b.state === 'active') return 1;
+      }
+
+      // Within same category, sort by due date (closest first)
+      if (aDueDate && bDueDate) {
+        return aDueDate.getTime() - bDueDate.getTime();
+      }
+      if (aDueDate && !bDueDate) return -1;
+      if (!aDueDate && bDueDate) return 1;
+
+      // Finally, sort alphabetically by title
+      return a.title.localeCompare(b.title);
+    });
   }, [milestones, milestoneSearch]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-background border rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b bg-background">
-          <div className="flex items-center gap-3">
-            <GitLab className="w-6 h-6 text-orange-500" />
-            <div>
-              <h2 className="text-xl font-semibold">Create GitLab Issues</h2>
-              <p className="text-sm text-muted-foreground">
-                Select project and milestone for {tickets.length} ticket
-                {tickets.length !== 1 ? 's' : ''}
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onClose}
-            className="cursor-pointer hover:bg-accent hover:scale-105 transition-all duration-200"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      title="Create GitLab Issues"
+      subtitle={`Select project and milestone for ${tickets.length} ticket${tickets.length !== 1 ? 's' : ''}`}
+      icon={<GitLab className="w-6 h-6 text-orange-500" />}
+    >
 
-        <div className="flex h-[600px] bg-background">
-          {/* Project Selection */}
-          <div className="w-1/2 border-r flex flex-col bg-background">
-            <div className="p-4 border-b bg-background">
+      <div className="flex h-[600px]">
+        {/* Project Selection */}
+        <div className="w-1/2 border-r border-border flex flex-col">
+          <div className="p-4 border-b border-border">
               <h3 className="font-medium mb-3 flex items-center gap-2">
                 <GitBranch className="w-4 h-4" />
                 Select Project
@@ -278,8 +302,8 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
               )}
             </div>
 
-            {/* Projects List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-background">
+          {/* Projects List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {isLoadingProjects && projects.length === 0 ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -333,9 +357,9 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
             </div>
           </div>
 
-          {/* Milestone Selection */}
-          <div className="w-1/2 flex flex-col bg-background">
-            <div className="p-4 border-b bg-background">
+        {/* Milestone Selection */}
+        <div className="w-1/2 flex flex-col">
+          <div className="p-4 border-b border-border">
               <h3 className="font-medium mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Select Milestone
@@ -383,8 +407,8 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
               )}
             </div>
 
-            {/* Milestones List */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-background">
+          {/* Milestones List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-2">
               {selectedProject && (
                 <div
                   onClick={() => setSelectedMilestone(null)}
@@ -437,11 +461,17 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
                             className={cn(
                               'text-xs px-1.5 py-0.5 rounded-full',
                               milestone.state === 'active'
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                ? milestone.due_date && new Date(milestone.due_date) > new Date()
+                                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                                  : 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                                 : 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
                             )}
                           >
-                            {milestone.state}
+                            {milestone.state === 'active' &&
+                            milestone.due_date &&
+                            new Date(milestone.due_date) > new Date()
+                              ? 'upcoming'
+                              : milestone.state}
                           </span>
                         </div>
                       </div>
@@ -464,46 +494,44 @@ const ProjectSelectionModal: React.FC<ProjectSelectionModalProps> = ({
               {selectedProject && !isLoadingMilestones && filteredMilestones().length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Calendar className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>No active milestones found</p>
+                  <p>No milestones found</p>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t bg-background flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {selectedProject ? (
-              <span className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                Selected: {selectedProject.path_with_namespace}
-                {selectedMilestone && ` → ${selectedMilestone.title}`}
-              </span>
-            ) : (
-              <span>Please select a project to continue</span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              className="cursor-pointer hover:bg-accent hover:border-border/50 hover:shadow-md transition-all duration-200 hover:scale-105"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirm}
-              disabled={!selectedProject}
-              className="cursor-pointer hover:bg-primary/90 hover:shadow-lg transition-all duration-200 hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
-            >
-              Create {tickets.length} Issue{tickets.length !== 1 ? 's' : ''}
-            </Button>
-          </div>
+      {/* Footer */}
+      <div className="flex justify-between items-center gap-3 p-6 border-t border-border">
+        <div className="text-sm text-muted-foreground">
+          {selectedProject ? (
+            <span className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              Selected: {selectedProject.path_with_namespace}
+              {selectedMilestone && ` → ${selectedMilestone.title}`}
+            </span>
+          ) : (
+            <span>Please select a project to continue</span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="cursor-pointer hover:bg-accent hover:border-accent-foreground hover:scale-105 hover:shadow-md transition-all duration-200"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={!selectedProject}
+            className="cursor-pointer bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary hover:scale-105 hover:shadow-lg transition-all duration-200 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
+          >
+            Create {tickets.length} Issue{tickets.length !== 1 ? 's' : ''}
+          </Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

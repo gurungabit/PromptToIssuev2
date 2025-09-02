@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Dropdown } from '@/components/ui/Dropdown';
 import { useChat } from '@/contexts/ChatContext';
 import { GitLabSettings } from './GitLabSettings';
 import { MCPSettings } from './MCPSettings';
@@ -18,7 +19,6 @@ import {
   AlertTriangle,
   AlertCircle,
   Link,
-  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
@@ -50,25 +50,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   const [testResults, setTestResults] = useState<
     Record<string, { success: boolean; message: string } | null>
   >({});
-  const [showModelDropdown, setShowModelDropdown] = useState<Record<string, boolean>>({});
-  const modelDropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      Object.keys(showModelDropdown).forEach(providerId => {
-        if (showModelDropdown[providerId]) {
-          const ref = modelDropdownRefs.current[providerId];
-          if (ref && !ref.contains(event.target as Node)) {
-            setShowModelDropdown(prev => ({ ...prev, [providerId]: false }));
-          }
-        }
-      });
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showModelDropdown]);
 
   // Get enabled providers from the configuration
   const providers = getEnabledProviders().map(providerId => ({
@@ -324,63 +306,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
 
                       {/* Model - Show dropdown if model selector is enabled for this provider */}
                       {shouldShowModelSelector(provider.id) ? (
-                        <div className="relative overflow-visible">
+                        <div>
                           <label className="text-sm font-medium mb-2 block">Model</label>
-                          <div
-                            className="relative overflow-visible"
-                            ref={el => {
-                              modelDropdownRefs.current[provider.id] = el;
-                            }}
-                          >
-                            <button
-                              type="button"
-                              data-dropdown={provider.id}
-                              onClick={() =>
-                                setShowModelDropdown(prev => ({
-                                  ...prev,
-                                  [provider.id]: !prev[provider.id],
-                                }))
-                              }
-                              className="w-full px-3 py-2 text-sm border border-border rounded-md bg-background text-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200 text-left flex items-center justify-between"
-                            >
-                              <span>
-                                {getModelDisplayName(providerConfigs[provider.id]?.model || '') ||
-                                  'Select a model...'}
-                              </span>
-                              <ChevronDown
-                                className={cn(
-                                  'w-4 h-4 transition-transform duration-200',
-                                  showModelDropdown[provider.id] && 'rotate-180'
-                                )}
-                              />
-                            </button>
-                            {showModelDropdown[provider.id] && (
-                              <div className="absolute z-[9999] w-full mt-1 bg-gray-200 border border-gray-300 rounded-md shadow-2xl max-h-60 overflow-y-auto left-0 right-0">
-                                {getAvailableModels(provider.id).map(model => (
-                                  <button
-                                    key={model}
-                                    type="button"
-                                    onClick={() => {
-                                      handleProviderConfigUpdate(provider.id, 'model', model);
-                                      setShowModelDropdown(prev => ({
-                                        ...prev,
-                                        [provider.id]: false,
-                                      }));
-                                    }}
-                                    className={cn(
-                                      'w-full px-3 py-2 text-sm text-left transition-colors duration-200 cursor-pointer block text-gray-800',
-                                      'hover:bg-gray-100 hover:text-gray-900',
-                                      providerConfigs[provider.id]?.model === model
-                                        ? 'bg-gray-200 text-gray-900'
-                                        : ''
-                                    )}
-                                  >
-                                    {getModelDisplayName(model)}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
+                          <Dropdown
+                            value={providerConfigs[provider.id]?.model || ''}
+                            options={[
+                              { value: '', label: 'Select a model...' },
+                              ...getAvailableModels(provider.id).map(model => ({
+                                value: model,
+                                label: getModelDisplayName(model),
+                              })),
+                            ]}
+                            onChange={(value) => handleProviderConfigUpdate(provider.id, 'model', value)}
+                            placeholder="Select a model..."
+                            size="md"
+                          />
                         </div>
                       ) : (
                         <div>

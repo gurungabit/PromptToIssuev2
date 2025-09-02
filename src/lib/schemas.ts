@@ -199,6 +199,16 @@ export const ProjectSelectionSchema = z.object({
   milestoneId: z.number().optional(),
 });
 
+export const TicketProjectSelectionSchema = z.object({
+  ticketId: z.string(),
+  projectId: z.number(),
+  milestoneId: z.number().optional(),
+});
+
+export const MultiProjectSelectionSchema = z.object({
+  tickets: z.array(TicketProjectSelectionSchema),
+});
+
 // Type exports
 export type GitLabProject = z.infer<typeof GitLabProjectSchema>;
 export type GitLabMilestone = z.infer<typeof GitLabMilestoneSchema>;
@@ -206,3 +216,5 @@ export type GitLabGroup = z.infer<typeof GitLabGroupSchema>;
 export type GitLabConfig = z.infer<typeof GitLabConfigSchema>;
 export type GitLabIssueCreate = z.infer<typeof GitLabIssueCreateSchema>;
 export type ProjectSelection = z.infer<typeof ProjectSelectionSchema>;
+export type TicketProjectSelection = z.infer<typeof TicketProjectSelectionSchema>;
+export type MultiProjectSelection = z.infer<typeof MultiProjectSelectionSchema>;

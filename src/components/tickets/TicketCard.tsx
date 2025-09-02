@@ -31,6 +31,13 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
   const [newTask, setNewTask] = useState('');
   const [newLabel, setNewLabel] = useState('');
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
+  const [editingAC, setEditingAC] = useState<string | null>(null);
+  const [editingTask, setEditingTask] = useState<string | null>(null);
+
+  // Sync editedTicket with ticket prop when it changes
+  React.useEffect(() => {
+    setEditedTicket(ticket);
+  }, [ticket]);
 
   const priorityOptions = ['low', 'medium', 'high', 'critical'] as const;
   const typeOptions = ['feature', 'bug', 'task', 'improvement', 'epic'] as const;
@@ -39,7 +46,7 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
   const priorityDropdownOptions = priorityOptions.map(priority => ({
     value: priority,
     label: priority,
-    icon: <AlertTriangle className="w-3 h-3" />
+    icon: <AlertTriangle className="w-3 h-3" />,
   }));
 
   const handleSave = async () => {
@@ -64,6 +71,8 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
     setNewAC('');
     setNewTask('');
     setNewLabel('');
+    setEditingAC(null);
+    setEditingTask(null);
   };
 
   const addAcceptanceCriteria = () => {
@@ -110,6 +119,26 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
       ...prev,
       tasks: prev.tasks.filter(task => task.id !== taskId),
     }));
+  };
+
+  const updateAcceptanceCriteria = (acId: string, newDescription: string) => {
+    setEditedTicket(prev => ({
+      ...prev,
+      acceptanceCriteria: prev.acceptanceCriteria.map(ac =>
+        ac.id === acId ? { ...ac, description: newDescription } : ac
+      ),
+    }));
+    setEditingAC(null);
+  };
+
+  const updateTask = (taskId: string, newDescription: string) => {
+    setEditedTicket(prev => ({
+      ...prev,
+      tasks: prev.tasks.map(task =>
+        task.id === taskId ? { ...task, description: newDescription } : task
+      ),
+    }));
+    setEditingTask(null);
   };
 
   const getPriorityColor = (priority: string) => {
@@ -185,7 +214,12 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
               <Dropdown
                 value={editedTicket.type}
                 options={typeDropdownOptions}
-                onChange={(value) => setEditedTicket(prev => ({ ...prev, type: value as (typeof typeOptions)[number] }))}
+                onChange={value =>
+                  setEditedTicket(prev => ({
+                    ...prev,
+                    type: value as (typeof typeOptions)[number],
+                  }))
+                }
                 size="sm"
               />
             ) : (
@@ -203,7 +237,12 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
               <Dropdown
                 value={editedTicket.priority}
                 options={priorityDropdownOptions}
-                onChange={(value) => setEditedTicket(prev => ({ ...prev, priority: value as (typeof priorityOptions)[number] }))}
+                onChange={value =>
+                  setEditedTicket(prev => ({
+                    ...prev,
+                    priority: value as (typeof priorityOptions)[number],
+                  }))
+                }
                 size="sm"
                 icon={<AlertTriangle className="w-3 h-3" />}
               />
@@ -293,8 +332,42 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
           {(isEditing ? editedTicket : ticket).acceptanceCriteria.map(ac => (
             <div key={ac.id} className="flex items-start gap-2">
               <Circle className="w-4 h-4 mt-0.5 text-muted-foreground" />
-              <span className="text-sm flex-1">{ac.description}</span>
-              {isEditing && (
+              {isEditing && editingAC === ac.id ? (
+                <div className="flex-1 flex gap-2">
+                  <Input
+                    defaultValue={ac.description}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        updateAcceptanceCriteria(ac.id, e.currentTarget.value);
+                      } else if (e.key === 'Escape') {
+                        setEditingAC(null);
+                      }
+                    }}
+                    onBlur={e => updateAcceptanceCriteria(ac.id, e.target.value)}
+                    autoFocus
+                    className="text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingAC(null)}
+                    className="cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <span
+                  className={cn(
+                    'text-sm flex-1',
+                    isEditing && 'cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5'
+                  )}
+                  onClick={() => isEditing && setEditingAC(ac.id)}
+                >
+                  {ac.description}
+                </span>
+              )}
+              {isEditing && editingAC !== ac.id && (
                 <Button
                   size="sm"
                   variant="ghost"
@@ -333,15 +406,47 @@ const TicketCard: React.FC<TicketCardProps> = ({ ticket, onEdit }) => {
           {(isEditing ? editedTicket : ticket).tasks.map(task => (
             <div key={task.id} className="flex items-start gap-2">
               <Circle className="w-4 h-4 mt-0.5 text-muted-foreground" />
-              <div className="flex-1">
-                <span className="text-sm">{task.description}</span>
-                {task.estimatedHours && (
-                  <span className="text-xs text-muted-foreground ml-2">
-                    ({task.estimatedHours}h)
-                  </span>
-                )}
-              </div>
-              {isEditing && (
+              {isEditing && editingTask === task.id ? (
+                <div className="flex-1 flex gap-2">
+                  <Input
+                    defaultValue={task.description}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        updateTask(task.id, e.currentTarget.value);
+                      } else if (e.key === 'Escape') {
+                        setEditingTask(null);
+                      }
+                    }}
+                    onBlur={e => updateTask(task.id, e.target.value)}
+                    autoFocus
+                    className="text-sm"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setEditingTask(null)}
+                    className="cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  className={cn(
+                    'flex-1',
+                    isEditing && 'cursor-pointer hover:bg-muted/50 rounded px-1 py-0.5'
+                  )}
+                  onClick={() => isEditing && setEditingTask(task.id)}
+                >
+                  <span className="text-sm">{task.description}</span>
+                  {task.estimatedHours && (
+                    <span className="text-xs text-muted-foreground ml-2">
+                      ({task.estimatedHours}h)
+                    </span>
+                  )}
+                </div>
+              )}
+              {isEditing && editingTask !== task.id && (
                 <Button
                   size="sm"
                   variant="ghost"

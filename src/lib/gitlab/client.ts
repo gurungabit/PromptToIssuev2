@@ -212,7 +212,6 @@ class GitLabClient {
       const params = new URLSearchParams({
         page: page.toString(),
         per_page: perPage.toString(),
-        state: 'active',
       });
 
       try {
@@ -272,7 +271,6 @@ class GitLabClient {
       const params = new URLSearchParams({
         page: page.toString(),
         per_page: perPage.toString(),
-        state: 'active',
       });
 
       try {

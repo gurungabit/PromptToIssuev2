@@ -19,6 +19,7 @@ import type {
   Ticket,
   GitLabConfig,
   ProjectSelection,
+  MultiProjectSelection,
   MCPServer,
   MCPConfig,
 } from '@/lib/schemas';
@@ -80,6 +81,7 @@ interface ChatContextType {
   // GitLab Actions
   setGitLabConfig: (config: GitLabConfig) => void;
   createGitLabIssues: (tickets: Ticket[], projectSelection: ProjectSelection) => Promise<void>;
+  createGitLabIssuesMulti: (multiSelection: MultiProjectSelection) => Promise<void>;
   setShowProjectSelection: (show: boolean) => void;
 
   // MCP Actions
@@ -658,6 +660,72 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     }
   };
 
+  const createGitLabIssuesMulti = async (multiSelection: MultiProjectSelection) => {
+    if (!gitlabConfig) {
+      addMessage('❌ GitLab configuration is missing.', 'assistant');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // Call GitLab multi-project API to create issues
+      const response = await fetch('/api/gitlab/create-issues-multi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tickets: pendingTickets,
+          multiProjectSelection: multiSelection,
+          gitlabConfig,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create GitLab issues');
+      }
+
+      const result = await response.json();
+
+      // Build success message with project grouping
+      let message = `✅ ${result.message}`;
+      if (result.projectGroups) {
+        message += '\n\n**Issues Created by Project:**\n';
+        for (const [projectId, projectGroup] of Object.entries(result.projectGroups)) {
+          const group = projectGroup as {
+            count: number;
+            issues: Array<{ issueNumber: number; url: string; title: string }>;
+          };
+          const firstIssue = group.issues[0];
+          if (firstIssue) {
+            message += `\n**Project ${projectId}:**\n`;
+            group.issues.forEach((issue: { issueNumber: number; url: string; title: string }) => {
+              message += `• [#${issue.issueNumber}](${issue.url}) - ${issue.title}\n`;
+            });
+          }
+        }
+      }
+
+      if (result.errors && result.errors.length > 0) {
+        message += '\n\n**Failed to create:**\n';
+        result.errors.forEach((error: { title: string; error: string }) => {
+          message += `• ${error.title}: ${error.error}\n`;
+        });
+      }
+
+      addMessage(message, 'assistant');
+      setPendingTickets([]);
+    } catch (error) {
+      console.error('Error creating GitLab issues (multi-project):', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      addMessage(`❌ Failed to create GitLab issues: ${errorMessage}`, 'assistant');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const rejectTickets = () => {
     setPendingTickets([]);
     addMessage('Please provide more details or clarify your requirements.', 'assistant');
@@ -961,6 +1029,7 @@ export const ChatProvider: React.FC<ChatProviderProps> = ({ children }) => {
     // GitLab Actions
     setGitLabConfig: setGitlabConfig,
     createGitLabIssues,
+    createGitLabIssuesMulti,
     setShowProjectSelection,
 
     // MCP Actions
